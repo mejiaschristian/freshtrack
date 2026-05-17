@@ -1,3 +1,7 @@
+<?php
+include 'db.php';
+?>
+
 <!doctype html>
 <html lang="en" data-bs-theme="light">
 
@@ -19,7 +23,7 @@
 <body>
     <header class="sticky-top">
         <nav class="navbar navbar-expand-sm navbar-dark bg-success">
-            <div class="container-fluid">
+            <div class="w-75 container-fluid">
                 <a class="navbar-brand me-auto" href="#">
                     <img
                         src="fresh-track.png"
@@ -72,54 +76,94 @@
         </nav>
     </header>
     <main>
-        <div class="container mt-5">
+        <div class="container-lg mt-5">
             <h2>Dashboard</h2>
             <p>Welcome to your dashboard!</p>
         </div>
-        <div class="summary container">
+        <div class="container-lg">
             <div class="card mb-4">
                 <h3 class="card-header bg-success-subtle">Summary</h3>
                 <div
-                    class="row d-flex align-items-center gap-2 justify-content-center text-center p-3">
+                    class="row d-flex align-items-stretch gap-2 justify-content-center text-center p-3">
                     <div class="col-md">
-                        <div class="card w-100">
-                            <h5 class="card-header">Sales</h5>
+                        <div class="card w-100 h-100">
+                            <h6 class="card-header">Sales</h6>
                             <div class="card-body">
-                                <p class="card-text">$1,234</p>
+                                <p class="card-text">
+                                    ₱ 0.00
+                                </p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md">
-                        <div class="card w-100">
-                            <h5 class="card-header">Inventory Items</h5>
+                        <div class="card w-100 h-100">
+                            <h6 class="card-header">Total Inventory Cost</h6>
                             <div class="card-body">
-                                <p class="card-text">123</p>
+                                <p class="card-text">
+                                    <?php
+                                    $stmt = $pdo->query("SELECT SUM(itemPrice * itemQuantity) FROM tblItems");
+                                    $totalInventoryCost = $stmt->fetchColumn();
+                                    echo '₱ ' . number_format($totalInventoryCost, 2);
+                                    ?>
+                                </p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md">
-                        <div class="card w-100">
-                            <h5 class="card-header">Low Stock Items</h5>
+                        <div class="card w-100 h-100">
+                            <h6 class="card-header">Inventory Items</h6>
                             <div class="card-body">
-                                <p class="card-text">5</p>
+                                <p class="card-text">
+                                    <?php
+                                    $stmt = $pdo->query("SELECT COUNT(*) FROM tblItems");
+                                    $inventoryItemsCount = $stmt->fetchColumn();
+                                    echo $inventoryItemsCount;
+                                    ?>
+                                </p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md">
-                        <div class="card w-100">
-                            <h5 class="card-header">Queued Orders</h5>
+                        <div class="card w-100 h-100">
+                            <h6 class="card-header">Low Stock Items</h6>
                             <div class="card-body">
-                                <p class="card-text">5</p>
+                                <p class="card-text">
+                                    <?php
+                                    $stmt = $pdo->query("SELECT COUNT(*) FROM tblItems WHERE itemQuantity < 10");
+                                    $lowStockItemsCount = $stmt->fetchColumn();
+                                    echo $lowStockItemsCount;
+                                    ?>
+                                </p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md">
-                        <div class="card w-100">
-                            <h5 class="card-header">
+                        <div class="card w-100 h-100">
+                            <h6 class="card-header">Queued Orders</h6>
+                            <div class="card-body">
+                                <p class="card-text">
+                                    <?php
+                                    $stmt = $pdo->query("SELECT COUNT(*) FROM tblorders WHERE status = 'pending'");
+                                    $queuedOrdersCount = $stmt->fetchColumn();
+                                    echo $queuedOrdersCount;
+                                    ?>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md">
+                        <div class="card w-100 h-100">
+                            <h6 class="card-header">
                                 Ongoing Deliveries
-                            </h5>
+                            </h6>
                             <div class="card-body">
-                                <p class="card-text">2</p>
+                                <p class="card-text">
+                                    <?php
+                                    $stmt = $pdo->query("SELECT COUNT(*) FROM tblorders WHERE status = 'in_progress'");
+                                    $inProgressDeliveriesCount = $stmt->fetchColumn();
+                                    echo $inProgressDeliveriesCount;
+                                    ?>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -127,7 +171,7 @@
             </div>
 
         </div>
-        <div class="container">
+        <div class="container-lg">
             <div class="row">
                 <div class="col-md-6">
                     <div class="card mb-4">

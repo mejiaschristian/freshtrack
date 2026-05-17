@@ -1,13 +1,8 @@
-<?php
-require_once 'db.php';
-?>
-
-
 <!doctype html>
 <html lang="en" data-bs-theme="light">
 
 <head>
-    <title>FreshTrack - Orders</title>
+    <title>FreshTrack - Store</title>
     <!-- Required meta tags -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -24,13 +19,26 @@ require_once 'db.php';
 <body>
     <header class="sticky-top">
         <nav class="navbar navbar-expand-sm navbar-dark bg-success">
-            <div class="container-fluid">
+            <div class="w-75 container-lg">
                 <a class="navbar-brand me-auto" href="#">
                     <img
                         src="fresh-track.png"
                         alt="FreshTrack"
                         class="img-fluid d-block w-auto z-1 mt-2 mx-5" />
                 </a>
+                <search class="w-50">
+                    <div class="input-group mb-3">
+                        <input
+                            type="text"
+                            class="form-control"
+                            placeholder="Search for items..."
+                            aria-label="Search for items"
+                            aria-describedby="button-search" />
+                        <button class="btn bg-white type="button" id="button-search">
+                            <img src="search.svg" alt="Search" width="20" />
+                        </button>
+                    </div>
+                </search>
                 <button
                     class="navbar-toggler p-4"
                     type="button"
@@ -45,15 +53,13 @@ require_once 'db.php';
                 <div class="collapse navbar-collapse" id="collapsibleNavId">
                     <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link" href="dashboard.php" aria-current="page">
-                                Dashboard
+                            <a class="nav-link active" href="#" aria-current="page">
+                                Shop
+                                <span class="visually-hidden">(current)</span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="inventory.php">Inventory</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link active" href="orders.php">Orders</a>
+                            <a class="nav-link" href="cart.php">Cart</a>
                         </li>
                         <li class="nav-item dropdown">
                             <a
@@ -76,41 +82,42 @@ require_once 'db.php';
         </nav>
     </header>
     <main>
-        <div class="container-fluid mt-5">
-            <h2>Orders</h2>
-            <p>Manage your orders here.</p>
-            <div class="mt-5">
-                <div class="card mb-4">
-                    <h3 class="card-header bg-success-subtle">
-                        Pending Orders
-                    </h3>
-                    <div class="orders card-body">
-                        <?php
-                        $stmt = $conn->prepare("SELECT * FROM tblOrders WHERE status = 'pending'");
-                        $stmt->execute();
-                        $pendingOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        <div class="container-lg mt-5">
+            <h2>Shop</h2>
+            <p>Browse and purchase fresh items for your hotel!</p>
+        </div>
+        <div class="container">
 
-                        if (!empty($pendingOrders)) {
-                            foreach ($pendingOrders as $order) {
-                                echo '<div class="card mb-3">';
-                                echo '  <div class="card-body">';
-                                echo '    <h5 class="card-title">Order #' . htmlspecialchars($order['orderID'] ?? 'N/A') . '</h5>';
-                                echo '    <p class="card-text"><strong>Customer:</strong> ' . htmlspecialchars($order['orderName'] ?? 'N/A') . '</p>';
-                                echo '    <p class="card-text"><span class="badge bg-warning text-dark">Pending</span></p>';
-                                echo '    <a href="order_details.php?orderID=' . urlencode($order['orderID']) . '" class="btn btn-primary">View Details</a>';
-                                echo '    <a href="update_order.php?orderID=' . urlencode($order['orderID']) . '" class="btn btn-success">Update Status</a>';
-                                echo '  </div>';
-                                echo '</div>';
-                            }
-                        } else {
-                            echo '<p class="text-muted">No pending orders at the moment.</p>';
-                        }
-                        ?>
-                    </div>
-                </div>
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                <?php
+                include 'db.php';
+                try {
+                    $stmt = $pdo->query("SELECT * FROM tblItems");
+                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                        echo '
+                        <div class="col">
+                            <div class="item-card card h-100">
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title">' . htmlspecialchars($row['itemName']) . '</h5>
+                                    <p class="card-text">' . htmlspecialchars($row['itemDescription']) . '</p>
+                                    <p class="card-text mt-auto"><strong>₱' . htmlspecialchars($row['itemPrice']) . ' per ' . htmlspecialchars($row['itemUnit']) . '</strong></p>
+                                    <a href="cart.php?add=' . htmlspecialchars($row['itemID']) . '" class="btn btn-success">Add to Cart</a>
+                                </div>
+                            </div>
+                        </div>
+                        ';
+                    }
+                } catch (PDOException $e) {
+                    echo "Error: " . $e->getMessage();
+                }
+                ?>
             </div>
         </div>
     </main>
+    <footer>
+        <!-- place footer here -->
+    </footer>
+    <!-- Bootstrap JavaScript Bundle (includes Popper) -->
     <script
         src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
