@@ -2,12 +2,18 @@
 session_start();
 require_once 'auth.php';
 
-// login logic
+// sign-up logic
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email_or_username = isset($_POST['email_or_username']) ? trim($_POST['email_or_username']) : '';
+    $email = isset($_POST['email']) ? trim($_POST['email']) : '';
     $password = isset($_POST['password']) ? $_POST['password'] : '';
+    $confirm_password = isset($_POST['confirm_password']) ? $_POST['confirm_password'] : '';
 
-    $result = login($email_or_username, $password);
+    // Check if passwords match
+    if ($password !== $confirm_password) {
+        $_SESSION['register_error'] = "Passwords do not match.";
+    } else {
+        $stmt = $pdo->prepare("INSERT INTO tblusers (fullName, email, password, role) VALUES (:fullName, :email, :password, 'user')");
+    }
 
     if ($result['success']) {
         // Redirect based on user role
@@ -19,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     } else {
         // Store error message in session to display
-        $_SESSION['login_error'] = $result['message'];
+        $_SESSION['register_error'] = $result['message'];
     }
 }
 ?>
@@ -28,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en" data-bs-theme="light">
 
 <head>
-    <title>Freshtrack - Login</title>
+    <title>Freshtrack - Sign Up</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link
@@ -52,18 +58,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 src="fresh-track.png"
                                 alt="FreshTrack Logo"
                                 class="login-logo mb-3" />
-                            <h1 class="login-title">Welcome Back!</h1>
-                            <p class="login-subtitle">Sign in to continue to FreshTrack</p>
+                            <h1 class="login-title">Create Account</h1>
+                            <p class="login-subtitle">Sign up to get started with FreshTrack</p>
                         </div>
 
                         <!-- Error Message -->
-                        <?php if (isset($_SESSION['login_error'])): ?>
+                        <?php if (isset($_SESSION['register_error'])): ?>
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                 <i class="bi bi-exclamation-circle-fill me-2"></i>
-                                <?php echo $_SESSION['login_error']; ?>
+                                <?php echo $_SESSION['register_error']; ?>
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
-                        <?php unset($_SESSION['login_error']);
+                        <?php unset($_SESSION['register_error']);
                         endif; ?>
 
                         <!-- Login Form -->
@@ -79,6 +85,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     required />
                             </div>
 
+                            <div class="mb-3">
+                                <label for="hotelName" class="form-label fw-5">Hotel Name</label>
+                                <input
+                                    type="text"
+                                    class="form-control login-input"
+                                    id="hotelName"
+                                    name="hotelName"
+                                    placeholder="Enter your hotel name"
+                                    required />
+                            </div>
+
                             <div class="mb-4">
                                 <label for="password" class="form-label fw-5">Password</label>
                                 <input
@@ -90,21 +107,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     required />
                             </div>
 
+                            <div class="mb-4">
+                                <label for="confirm_password" class="form-label fw-5">Confirm Password</label>
+                                <input
+                                    type="password"
+                                    class="form-control login-input"
+                                    id="confirm_password"
+                                    name="confirm_password"
+                                    placeholder="Confirm your password"
+                                    required />
+                            </div>
+
                             <button
                                 type="submit"
                                 class="btn btn-login w-100 py-2 fw-6 mb-3">
-                                Sign In
+                                Create Account
                             </button>
                         </form>
 
                         <!-- Divider -->
                         <div class="divider-text mb-3">
-                            <span>New to FreshTrack?</span>
+                            <span>Already have an account?</span>
                         </div>
 
                         <!-- Sign Up Link -->
-                        <a href="register.php" class="btn btn-outline-login w-100 py-2 fw-5">
-                            Create Account
+                        <a href="index.php" class="btn btn-outline-login w-100 py-2 fw-5">
+                            Sign In
                         </a>
 
                         <!-- Footer Links -->

@@ -1,5 +1,13 @@
 <?php
+session_start();
+require_once 'auth.php';
 require_once 'db.php';
+
+// Check if user is logged in
+if (!isLoggedIn()) {
+    header('Location: index.php');
+    exit();
+}
 ?>
 
 
@@ -24,12 +32,12 @@ require_once 'db.php';
 <body>
     <header class="sticky-top">
         <nav class="navbar navbar-expand-sm navbar-dark bg-success">
-            <div class="container-fluid">
+            <div class="container-fluid w-75">
                 <a class="navbar-brand me-auto" href="#">
                     <img
                         src="fresh-track.png"
                         alt="FreshTrack"
-                        class="img-fluid d-block w-auto z-1 mt-2 mx-5" />
+                        class="img-fluid" />
                 </a>
                 <button
                     class="navbar-toggler p-4"
@@ -45,9 +53,7 @@ require_once 'db.php';
                 <div class="collapse navbar-collapse" id="collapsibleNavId">
                     <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link" href="dashboard.php" aria-current="page">
-                                Dashboard
-                            </a>
+                            <a class="nav-link" href="dashboard.php">Dashboard</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="inventory.php">Inventory</a>
@@ -55,20 +61,19 @@ require_once 'db.php';
                         <li class="nav-item">
                             <a class="nav-link active" href="orders.php">Orders</a>
                         </li>
-                        <li class="nav-item dropdown">
-                            <a
-                                class="nav-link dropdown-toggle"
-                                href="#"
-                                id="dropdownId"
-                                data-bs-toggle="dropdown"
-                                aria-haspopup="true"
-                                aria-expanded="false">
-                                More
-                            </a>
-                            <div class="dropdown-menu" aria-labelledby="dropdownId">
-                                <a class="dropdown-item" href="settings.php">Settings</a>
-                                <a class="dropdown-item btn btn-danger" href="index.php">Log Out</a>
-                            </div>
+                        <li class="nav-item">
+                            <a class="nav-link" href="purchases.php">Purchases</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="transactions.php">Transactions</a>
+                        </li>
+                        <?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
+                            <li class="nav-item">
+                                <a class="nav-link" href="users.php">Users</a>
+                            </li>
+                        <?php endif; ?>
+                        <li class="nav-item">
+                            <a class="nav-link" href="logout.php">Logout</a>
                         </li>
                     </ul>
                 </div>
@@ -76,7 +81,7 @@ require_once 'db.php';
         </nav>
     </header>
     <main>
-        <div class="container-fluid mt-5">
+        <div class="container-fluid mt-5 w-75">
             <h2>Orders</h2>
             <p>Manage your orders here.</p>
             <div class="mt-5">
@@ -86,7 +91,7 @@ require_once 'db.php';
                     </h3>
                     <div class="orders card-body">
                         <?php
-                        $stmt = $conn->prepare("SELECT * FROM tblOrders WHERE status = 'pending'");
+                        $stmt = $pdo->prepare("SELECT * FROM tblOrders WHERE status = 'pending'");
                         $stmt->execute();
                         $pendingOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
