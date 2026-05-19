@@ -5,14 +5,17 @@ require_once 'auth.php';
 // sign-up logic
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = isset($_POST['email']) ? trim($_POST['email']) : '';
+    $fullName = isset($_POST['fullName']) ? trim($_POST['fullName']) : '';
     $password = isset($_POST['password']) ? $_POST['password'] : '';
     $confirm_password = isset($_POST['confirm_password']) ? $_POST['confirm_password'] : '';
+
+    $result = register($email, $fullName, $password);
 
     // Check if passwords match
     if ($password !== $confirm_password) {
         $_SESSION['register_error'] = "Passwords do not match.";
     } else {
-        $stmt = $pdo->prepare("INSERT INTO tblusers (fullName, email, password, role) VALUES (:fullName, :email, :password, 'user')");
+        $result = register($email, $fullName, $password);
     }
 
     if ($result['success']) {
@@ -75,23 +78,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <!-- Login Form -->
                         <form method="POST" action="">
                             <div class="mb-3">
-                                <label for="email_or_username" class="form-label fw-5">Email or Username</label>
+                                <label for="email" class="form-label fw-5">Email</label>
                                 <input
                                     type="text"
                                     class="form-control login-input"
-                                    id="email_or_username"
-                                    name="email_or_username"
-                                    placeholder="Enter your email or username"
+                                    id="email"
+                                    name="email"
+                                    placeholder="Enter your email"
                                     required />
                             </div>
 
                             <div class="mb-3">
-                                <label for="hotelName" class="form-label fw-5">Hotel Name</label>
+                                <label for="fullName" class="form-label fw-5">Hotel Name</label>
                                 <input
                                     type="text"
                                     class="form-control login-input"
-                                    id="hotelName"
-                                    name="hotelName"
+                                    id="fullName"
+                                    name="fullName"
                                     placeholder="Enter your hotel name"
                                     required />
                             </div>
@@ -134,11 +137,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <a href="index.php" class="btn btn-outline-login w-100 py-2 fw-5">
                             Sign In
                         </a>
-
-                        <!-- Footer Links -->
-                        <div class="text-center mt-4">
-                            <a href="#" class="text-muted text-decoration-none footer-link">Forgot password?</a>
-                        </div>
                     </div>
                 </div>
 

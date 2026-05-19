@@ -271,6 +271,15 @@ function getDashboardStats($pdo)
     }
 }
 
+function generateBillNumber($pdo, $date)
+{
+    $yearMonth = date('Y-m', strtotime($date));
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM tblBills WHERE billNumber LIKE :prefix");
+    $stmt->execute(['prefix' => 'BILL-' . $yearMonth . '%']);
+    $count = $stmt->fetchColumn() + 1;
+    return 'BILL-' . $yearMonth . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+}
+
 /**
  * Get recent orders (last 5)
  */

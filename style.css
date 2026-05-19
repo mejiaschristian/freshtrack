@@ -19,10 +19,6 @@
     font-family: Poppins, sans-serif;
 }
 
-.navbar-brand img {
-    height: 50px;
-}
-
 /* Login Page Styles */
 .login-body {
     min-height: 100vh;
@@ -286,7 +282,7 @@
 /* Existing Styles */
 
 .navbar-brand img {
-    height: 90px;
+    height: 50px;
 }
 
 .inventory.card-body {
@@ -296,6 +292,8 @@
 }
 
 .item-card {
+    width: 200px;
+    height: 100px;
     transition: all 0.2s ease-in-out;
 }
 

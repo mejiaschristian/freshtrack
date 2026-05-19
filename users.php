@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt->execute([
                     ':fullName' => $fullName,
                     ':email' => $email,
-                    ':password' => $password,
+                    ':password' => password_hash($password, PASSWORD_DEFAULT),
                     ':role' => $role
                 ]);
 
@@ -114,7 +114,7 @@ $users = getAllUsers($pdo);
         <nav class="navbar navbar-expand-sm navbar-dark bg-success">
             <div class="container-fluid w-75">
                 <a class="navbar-brand me-auto" href="dashboard.php">
-                    <img src="fresh-track.png" alt="FreshTrack" class="img-fluid"/>
+                    <img src="fresh-track.png" alt="FreshTrack" class="img-fluid" />
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>

@@ -25,13 +25,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $dateAdded = $_POST['itemDateAdded'] ?? date('Y-m-d');
         $expiryDate = $_POST['itemExpiryDate'] ?? date('Y-m-d', strtotime('+7 days'));
 
+        // Handle image upload
+        $image = null;
+        if (!empty($_FILES['itemImage']['name'])) {
+            $uploadDir = 'uploads/items/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+            $ext = pathinfo($_FILES['itemImage']['name'], PATHINFO_EXTENSION);
+            $filename = uniqid('item_') . '.' . $ext;
+            $destination = $uploadDir . $filename;
+
+            $allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+            if (in_array(strtolower($ext), $allowed)) {
+                if (move_uploaded_file($_FILES['itemImage']['tmp_name'], $destination)) {
+                    $image = $destination; // save path to DB
+                }
+            } else {
+                $message = "Invalid image format.";
+                $messageType = "warning";
+            }
+        }
+
         if (!empty($name) && !empty($category) && !empty($price) && !empty($quantity)) {
             try {
-                $sql = "INSERT INTO tblItems (itemName, itemDescription, categoryID, itemPrice, itemQuantity, itemUnit, itemDateAdded, itemExpiryDate) VALUES (:itemName, :itemDescription, :categoryID, :itemPrice, :itemQuantity, :itemUnit, :itemDateAdded, :itemExpiryDate)";
+                $sql = "INSERT INTO tblItems (itemName, itemDescription, itemImage, categoryID, itemPrice, itemQuantity, itemUnit, itemDateAdded, itemExpiryDate) 
+                    VALUES (:itemName, :itemDescription, :itemImage, :categoryID, :itemPrice, :itemQuantity, :itemUnit, :itemDateAdded, :itemExpiryDate)";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([
                     'itemName' => $name,
                     'itemDescription' => $description,
+                    'itemImage' => $image,
                     'categoryID' => $category,
                     'itemPrice' => $price,
                     'itemQuantity' => $quantity,
@@ -45,9 +68,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $message = "Error: " . $e->getMessage();
                 $messageType = "danger";
             }
-        } else {
-            $message = "Please fill in all fields.";
-            $messageType = "warning";
         }
     } elseif ($action === 'edit') {
         $name = $_POST['itemName'];
@@ -59,12 +79,38 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $dateAdded = $_POST['itemDateAdded'] ?? date('Y-m-d');
         $expiryDate = $_POST['itemExpiryDate'] ?? date('Y-m-d', strtotime('+7 days'));
 
+        // Keep existing image by default
+        $image = $_POST['itemImage'];
+
+        if (!empty($_FILES['itemImage']['name'])) {
+            $uploadDir = 'uploads/items/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+            $ext = pathinfo($_FILES['itemImage']['name'], PATHINFO_EXTENSION);
+            $filename = uniqid('item_') . '.' . $ext;
+            $destination = $uploadDir . $filename;
+
+            $allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+            if (in_array(strtolower($ext), $allowed)) {
+                if (move_uploaded_file($_FILES['itemImage']['tmp_name'], $destination)) {
+                    // Delete old image file if it exists
+                    if (!empty($image) && file_exists($image)) {
+                        unlink($image);
+                    }
+                    $image = $destination;
+                }
+            }
+        }
+
         try {
-            $sql = "UPDATE tblItems SET itemName = :name, itemDescription = :description, categoryID = :category, itemPrice = :price, itemQuantity = :quantity, itemUnit = :unit, itemDateAdded = :dateAdded, itemExpiryDate = :expiryDate WHERE itemID = :itemID";
+            $sql = "UPDATE tblItems SET itemName=:name, itemDescription=:description, itemImage=:image, 
+                categoryID=:category, itemPrice=:price, itemQuantity=:quantity, itemUnit=:unit, 
+                itemDateAdded=:dateAdded, itemExpiryDate=:expiryDate WHERE itemID=:itemID";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
                 'name' => $name,
                 'description' => $description,
+                'image' => $image,
                 'category' => $category,
                 'price' => $price,
                 'quantity' => $quantity,
@@ -180,9 +226,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             <h5 class="modal-title" id="addItemLabel">Add New Item</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <form method="POST">
+                        <form method="POST" enctype="multipart/form-data">
                             <div class="modal-body">
                                 <input type="hidden" name="action" value="add">
+                                <input type="file" name="itemImage" accept="image/*">
                                 <div class="form-floating mb-3">
                                     <input type="text" class="form-control" id="itemName" name="itemName" placeholder="Enter item name" required>
                                     <label for="itemName" class="form-label">Item Name</label>
@@ -190,6 +237,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 <div class="form-floating mb-3">
                                     <input type="text" class="form-control" id="itemDescription" name="itemDescription" placeholder="Enter item description" required>
                                     <label for="itemDescription" class="form-label">Item Description</label>
+                                </div>
+                                <div class="form-floating mb-3">
+                                    <input type="file" class="form-control" id="itemImage" name="itemImage" placeholder="Upload item image" required>
+                                    <label for="itemImage" class="form-label">Item Image</label>
                                 </div>
                                 <div class="form-floating mb-3">
                                     <select class="form-select" id="categoryID" name="categoryID" required>
@@ -235,7 +286,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             <h5 class="modal-title" id="editItemLabel">Edit Item</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <form method="POST">
+                        <form method="POST" enctype="multipart/form-data">
                             <div class="modal-body">
                                 <input type="hidden" name="action" value="edit">
                                 <input type="hidden" id="itemID" name="itemID">
@@ -247,6 +298,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 <div class="form-floating mb-3">
                                     <input type="text" class="form-control" id="edit_itemDescription" name="itemDescription" required>
                                     <label for="edit_itemDescription" class="form-label">Item Description</label>
+                                </div>
+                                <div class="form-floating mb-3">
+                                    <input type="file" class="form-control" id="edit_itemImage" name="itemImage" placeholder="Upload item image" required>
+                                    <label for="edit_itemImage" class="form-label">Item Image</label>
                                 </div>
                                 <div class="form-floating mb-3">
                                     <select class="form-select" id="edit_categoryID" name="categoryID" required>

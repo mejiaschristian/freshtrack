@@ -37,8 +37,8 @@ function login($email, $password)
             ];
         }
 
-        // Verify password (non-hashed)
-        if ($password !== $user['password']) {
+        // Verify password (hashed)
+        if (!password_verify($password, $user['password'])) {
             return [
                 'success' => false,
                 'message' => 'Invalid email or password.'
@@ -63,6 +63,59 @@ function login($email, $password)
         return [
             'success' => false,
             'message' => 'Login Error: ' . $e->getMessage()
+        ];
+    }
+}
+
+function register($email, $hotelName, $password)
+{
+    global $pdo;
+
+    // Validate input
+    if (empty($email) || empty($hotelName) || empty($password)) {
+        return [
+            'success' => false,
+            'message' => 'Email, hotel name, and password are required.'
+        ];
+    }
+
+    try {
+        // Check if email already exists
+        $stmt = $pdo->prepare("SELECT userID FROM tblusers WHERE email = :email");
+        $stmt->execute([
+            ':email' => $email,
+        ]);
+
+        if ($stmt->fetch(PDO::FETCH_ASSOC)) {
+            return [
+                'success' => false,
+                'message' => 'Email is already registered.'
+            ];
+        }
+
+        // Insert new user into database
+        $stmt = $pdo->prepare("INSERT INTO tblusers (fullName, email, password, role) VALUES (:fullName, :email, :password, 'user')");
+        $result = $stmt->execute([
+            ':fullName' => $hotelName,
+            ':email' => $email,
+            ':password' => password_hash($password, PASSWORD_DEFAULT) // Hash the password
+        ]);
+
+        if ($result) {
+            return [
+                'success' => true,
+                'message' => 'Registration successful! You can now log in.'
+            ];
+        } else {
+            return [
+                'success' => false,
+                'message' => 'Registration failed. Please try again.'
+            ];
+        }
+    } catch (PDOException $e) {
+        return [
+            'success' => false,
+            'message' => 'Registration Error: ' . $e->getMessage()
         ];
     }
 }
