@@ -94,7 +94,7 @@ function register($email, $hotelName, $password)
         }
 
         // Insert new user into database
-        $stmt = $pdo->prepare("INSERT INTO tblusers (fullName, email, password, role) VALUES (:fullName, :email, :password, 'user')");
+        $stmt = $pdo->prepare("INSERT INTO tblusers (fullName, email, password, role) VALUES (:fullName, :email, :password, 'hotel')");
         $result = $stmt->execute([
             ':fullName' => $hotelName,
             ':email' => $email,

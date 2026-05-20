@@ -280,6 +280,25 @@
 }
 
 /* Existing Styles */
+.card.border-left-success {
+    border-left: 4px solid var(--primary-green);
+}
+
+.card.border-left-warning {
+    border-left: 4px solid #ffc107;
+}
+
+.card.border-left-info {
+    border-left: 4px solid #17a2b8;
+}
+
+.card.border-left-danger {
+    border-left: 4px solid #dc3545;
+}
+
+.card.border-left-primary {
+    border-left: 4px solid #007bff;
+}
 
 .navbar-brand img {
     height: 50px;
@@ -291,10 +310,42 @@
     overflow-y: auto;
 }
 
-.item-card {
-    width: 200px;
-    height: 100px;
+.cards-cont {
+    height: 500px;
+    overflow: scroll;
+}
+
+.order-card {
     transition: all 0.2s ease-in-out;
+}
+
+.order-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.item-card {
+    width: 210px;
+    transition: all 0.2s ease-in-out;
+}
+
+.item-card .card-body {
+    height: 180px;
+    overflow: hidden;
+}
+
+.item-card .card-title {
+    white-space: wrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item-card .card-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* number of lines before ellipsis */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .item-card:hover {

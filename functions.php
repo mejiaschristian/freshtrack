@@ -271,8 +271,7 @@ function getDashboardStats($pdo)
     }
 }
 
-function generateBillNumber($pdo, $date)
-{
+function generateBillNumber($pdo, $date) {
     $yearMonth = date('Y-m', strtotime($date));
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM tblBills WHERE billNumber LIKE :prefix");
     $stmt->execute(['prefix' => 'BILL-' . $yearMonth . '%']);
@@ -285,16 +284,15 @@ function generateBillNumber($pdo, $date)
  */
 function getRecentOrders($pdo, $limit = 5)
 {
-    try {
-        $stmt = $pdo->prepare("
-            SELECT * FROM tblorders 
-            ORDER BY orderDate DESC 
-            LIMIT :limit
-        ");
-        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        return [];
-    }
+    $stmt = $pdo->prepare("
+        SELECT tblOrders.orderID, tblOrders.orderDate, tblOrders.totalAmount, tblOrders.status,
+               tblusers.fullName AS customerName
+        FROM tblOrders
+        INNER JOIN tblusers ON tblOrders.userID = tblusers.userID
+        ORDER BY tblOrders.orderDate DESC
+        LIMIT :limit
+    ");
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }

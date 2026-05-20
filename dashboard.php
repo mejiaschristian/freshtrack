@@ -41,7 +41,6 @@ $recentOrders = getRecentOrders($pdo, 5);
                         <li class="nav-item"><a class="nav-link active" href="dashboard.php">Dashboard</a></li>
                         <li class="nav-item"><a class="nav-link" href="inventory.php">Inventory</a></li>
                         <li class="nav-item"><a class="nav-link" href="orders.php">Orders</a></li>
-                        <li class="nav-item"><a class="nav-link" href="purchases.php">Purchases</a></li>
                         <li class="nav-item"><a class="nav-link" href="transactions.php">Transactions</a></li>
                         <?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
                             <li class="nav-item"><a class="nav-link" href="users.php">Users</a></li>
@@ -53,10 +52,10 @@ $recentOrders = getRecentOrders($pdo, 5);
         </nav>
     </header>
 
-    <main class="container-fluid py-4 w-75">
+    <main class="container-fluid mt-5 w-75">
         <div class="row mb-4">
             <div class="col">
-                <h1 class="mb-1">Dashboard</h1>
+                <h2 class="mb-1">Dashboard</h2>
                 <p class="text-muted">Welcome back, <?php echo htmlspecialchars($_SESSION['username']); ?>!</p>
             </div>
         </div>
@@ -159,14 +158,24 @@ $recentOrders = getRecentOrders($pdo, 5);
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (!empty($recentOrders)): ?>
+                        <?php
+                        if (!empty($recentOrders)): ?>
                             <?php foreach ($recentOrders as $order): ?>
                                 <tr>
                                     <td>#<?php echo $order['orderID']; ?></td>
                                     <td><?php echo htmlspecialchars($order['customerName']); ?></td>
                                     <td><?php echo date('M d, Y H:i', strtotime($order['orderDate'])); ?></td>
                                     <td>
-                                        <span class="badge bg-<?php echo $order['status'] === 'pending' ? 'warning' : ($order['status'] === 'completed' ? 'success' : 'danger'); ?>">
+                                        <?php
+                                        $badgeColor = match ($order['status']) {
+                                            'pending' => 'warning text-dark',
+                                            'billed'  => 'primary',
+                                            'partial' => 'warning text-dark',
+                                            'paid'    => 'success',
+                                            default   => 'secondary'
+                                        };
+                                        ?>
+                                        <span class="badge bg-<?php echo $badgeColor; ?>">
                                             <?php echo ucfirst($order['status']); ?>
                                         </span>
                                     </td>
@@ -184,27 +193,7 @@ $recentOrders = getRecentOrders($pdo, 5);
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    <style>
-        .card.border-left-success {
-            border-left: 4px solid var(--primary-green);
-        }
 
-        .card.border-left-warning {
-            border-left: 4px solid #ffc107;
-        }
-
-        .card.border-left-info {
-            border-left: 4px solid #17a2b8;
-        }
-
-        .card.border-left-danger {
-            border-left: 4px solid #dc3545;
-        }
-
-        .card.border-left-primary {
-            border-left: 4px solid #007bff;
-        }
-    </style>
 </body>
 
 </html>

@@ -29,9 +29,15 @@ try {
     $stmt->execute(['orderID' => $orderID]);
     $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Check if a bill exists for this order
+    $billStmt = $pdo->prepare("SELECT billID FROM tblBillOrders WHERE orderID = :orderID");
+    $billStmt->execute(['orderID' => $orderID]);
+    $billRow = $billStmt->fetch(PDO::FETCH_ASSOC);
+
     echo json_encode([
-        'order' => $order,
-        'items' => $items
+        'order'  => $order,
+        'items'  => $items,
+        'billID' => $billRow ? $billRow['billID'] : null
     ]);
 } catch (PDOException $e) {
     echo json_encode(['error' => $e->getMessage()]);

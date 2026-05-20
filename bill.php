@@ -85,6 +85,9 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <a class="navbar-brand me-auto" href="#">
                     <img src="fresh-track.png" alt="FreshTrack" class="img-fluid d-block w-auto z-1 mt-2 mx-5" />
                 </a>
+                <div class="mx-5 p-2 bg-white rounded-5 d-flex align-items-center justify-content-center text-center">
+                    <p class="mb-0"><b>Hotel Name:</b> <?php echo $_SESSION['username'] ?? 'Guest'; ?></p>
+                </div>
                 <div class="collapse navbar-collapse">
                     <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
                         <li class="nav-item"><a class="nav-link" href="shop.php">Shop</a></li>

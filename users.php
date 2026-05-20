@@ -124,7 +124,6 @@ $users = getAllUsers($pdo);
                         <li class="nav-item"><a class="nav-link" href="dashboard.php">Dashboard</a></li>
                         <li class="nav-item"><a class="nav-link" href="inventory.php">Inventory</a></li>
                         <li class="nav-item"><a class="nav-link" href="orders.php">Orders</a></li>
-                        <li class="nav-item"><a class="nav-link" href="purchases.php">Purchases</a></li>
                         <li class="nav-item"><a class="nav-link" href="transactions.php">Transactions</a></li>
                         <li class="nav-item"><a class="nav-link active" href="users.php">Users</a></li>
                         <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
@@ -134,7 +133,7 @@ $users = getAllUsers($pdo);
         </nav>
     </header>
 
-    <main class="container-fluid py-4 w-75">
+    <main class="container-fluid mt-5 w-75">
         <div class="row mb-4">
             <div class="col">
                 <h1 class="mb-0">User Management</h1>
@@ -182,7 +181,14 @@ $users = getAllUsers($pdo);
                                     <td><?php echo htmlspecialchars($user['fullName']); ?></td>
                                     <td><?php echo htmlspecialchars($user['email']); ?></td>
                                     <td>
-                                        <span class="badge <?php echo $user['role'] === 'admin' ? 'bg-danger' : 'bg-info'; ?>">
+                                        <?php
+                                        $badgeColor = match ($user['role']) {
+                                            'admin' => 'bg-danger',
+                                            'staff' => 'bg-info',
+                                            default => 'bg-success'
+                                        };
+                                        ?>
+                                        <span class="badge <?php echo $badgeColor; ?>">
                                             <?php echo ucfirst($user['role']); ?>
                                         </span>
                                     </td>

@@ -80,7 +80,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $expiryDate = $_POST['itemExpiryDate'] ?? date('Y-m-d', strtotime('+7 days'));
 
         // Keep existing image by default
-        $image = $_POST['itemImage'];
+        $image = $_POST['existingImage'] ?? null;
 
         if (!empty($_FILES['itemImage']['name'])) {
             $uploadDir = 'uploads/items/';
@@ -191,9 +191,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             <a class="nav-link" href="orders.php">Orders</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="purchases.php">Purchases</a>
-                        </li>
-                        <li class="nav-item">
                             <a class="nav-link" href="transactions.php">Transactions</a>
                         </li>
                         <?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
@@ -229,7 +226,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <form method="POST" enctype="multipart/form-data">
                             <div class="modal-body">
                                 <input type="hidden" name="action" value="add">
-                                <input type="file" name="itemImage" accept="image/*">
                                 <div class="form-floating mb-3">
                                     <input type="text" class="form-control" id="itemName" name="itemName" placeholder="Enter item name" required>
                                     <label for="itemName" class="form-label">Item Name</label>
@@ -291,6 +287,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 <input type="hidden" name="action" value="edit">
                                 <input type="hidden" id="itemID" name="itemID">
                                 <input type="hidden" id="current_srp" name="current_srp">
+                                <input type="hidden" id="edit_existingImage" name="existingImage">
                                 <div class="form-floating mb-3">
                                     <input type="text" class="form-control" id="edit_itemName" name="itemName" required>
                                     <label for="edit_itemName" class="form-label">Item Name</label>
@@ -300,7 +297,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     <label for="edit_itemDescription" class="form-label">Item Description</label>
                                 </div>
                                 <div class="form-floating mb-3">
-                                    <input type="file" class="form-control" id="edit_itemImage" name="itemImage" placeholder="Upload item image" required>
+                                    <input type="file" class="form-control" id="edit_itemImage" name="itemImage" placeholder="Upload item image">
                                     <label for="edit_itemImage" class="form-label">Item Image</label>
                                 </div>
                                 <div class="form-floating mb-3">

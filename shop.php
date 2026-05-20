@@ -168,6 +168,7 @@ $successQty  = $_GET['success_qty'] ?? '';
                 <?php
                 try {
                     $stmt = $pdo->query("SELECT * FROM tblItems");
+
                     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                         echo '
                             <div class="col g-3 mb-4">
@@ -177,7 +178,9 @@ $successQty  = $_GET['success_qty'] ?? '';
                                         <h5 class="card-title">' . htmlspecialchars($row['itemName']) . '</h5>
                                         <p class="card-text">' . htmlspecialchars($row['itemDescription']) . '</p>
                                         <p class="card-text mt-auto"><strong>₱' . number_format($row['itemPrice'], 2) . ' per ' . htmlspecialchars($row['itemUnit']) . '</strong></p>
-                                        <button class="btn btn-success" onclick=\'openCartModal(' . json_encode($row) . ')\'>Add to Cart</button>
+                                    </div>
+                                    <div class="card-footer p-1">
+                                        <button class="btn btn-success w-100" onclick=\'openCartModal(' . json_encode($row) . ')\'>Add to Cart</button>
                                     </div>
                                 </div>
                             </div>

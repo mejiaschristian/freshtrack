@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once 'auth.php';
-require_once 'functions.php';
+require_once 'db.php';
 
 // Check if user is logged in
 if (!isLoggedIn()) {
@@ -12,64 +12,22 @@ if (!isLoggedIn()) {
 $message = "";
 $messageType = "";
 
-// Handle add transaction
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    $action = $_POST['action'];
-
-    if ($action === 'add') {
-        try {
-            $itemID = $_POST['itemID'];
-            $transactionType = $_POST['transactionType'];
-            $quantity = $_POST['quantity'];
-            $remarks = $_POST['remarks'] ?? '';
-
-            if (!empty($itemID) && !empty($transactionType) && !empty($quantity)) {
-                // Insert transaction
-                $stmt = $pdo->prepare("
-                    INSERT INTO tblstocktransactions (itemID, userID, transactionType, quantity, remarks) 
-                    VALUES (:itemID, :userID, :transactionType, :quantity, :remarks)
-                ");
-                $stmt->execute([
-                    ':itemID' => $itemID,
-                    ':userID' => $_SESSION['user_id'],
-                    ':transactionType' => $transactionType,
-                    ':quantity' => $quantity,
-                    ':remarks' => $remarks
-                ]);
-
-                // Update inventory
-                if ($transactionType === 'IN') {
-                    $updateStmt = $pdo->prepare("UPDATE tblitems SET itemQuantity = itemQuantity + :quantity WHERE itemID = :itemID");
-                } else {
-                    $updateStmt = $pdo->prepare("UPDATE tblitems SET itemQuantity = itemQuantity - :quantity WHERE itemID = :itemID");
-                }
-                $updateStmt->execute([
-                    ':quantity' => $quantity,
-                    ':itemID' => $itemID
-                ]);
-
-                $message = "Stock transaction recorded successfully!";
-                $messageType = "success";
-            } else {
-                $message = "Please fill in all required fields.";
-                $messageType = "warning";
-            }
-        } catch (PDOException $e) {
-            $message = "Error: " . $e->getMessage();
-            $messageType = "danger";
-        }
-    }
-}
-
-$transactions = getAllTransactions($pdo);
-$items = getAllItems($pdo);
+// Fetch all bills with customer information
+$stmt = $pdo->prepare("
+    SELECT tblBills.*, tblusers.fullName
+    FROM tblBills
+    INNER JOIN tblusers ON tblBills.userID = tblusers.userID
+    ORDER BY tblBills.billDate DESC
+");
+$stmt->execute();
+$allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!doctype html>
 <html lang="en" data-bs-theme="light">
 
 <head>
-    <title>FreshTrack - Stock Transactions</title>
+    <title>FreshTrack - Bills & Transactions</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -82,7 +40,7 @@ $items = getAllItems($pdo);
         <nav class="navbar navbar-expand-sm navbar-dark bg-success">
             <div class="container-fluid w-75">
                 <a class="navbar-brand me-auto" href="dashboard.php">
-                    <img src="fresh-track.png" alt="FreshTrack" class="img-fluid"/>
+                    <img src="fresh-track.png" alt="FreshTrack" class="img-fluid" />
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
@@ -92,8 +50,12 @@ $items = getAllItems($pdo);
                         <li class="nav-item"><a class="nav-link" href="dashboard.php">Dashboard</a></li>
                         <li class="nav-item"><a class="nav-link" href="inventory.php">Inventory</a></li>
                         <li class="nav-item"><a class="nav-link" href="orders.php">Orders</a></li>
-                        <li class="nav-item"><a class="nav-link" href="purchases.php">Purchases</a></li>
                         <li class="nav-item"><a class="nav-link active" href="transactions.php">Transactions</a></li>
+                        <?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
+                            <li class="nav-item">
+                                <a class="nav-link" href="users.php">Users</a>
+                            </li>
+                        <?php endif; ?>
                         <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
                     </ul>
                 </div>
@@ -101,11 +63,64 @@ $items = getAllItems($pdo);
         </nav>
     </header>
 
-    <main class="container-fluid py-4 w-75">
+    <!-- Admin Bill View Modal -->
+    <div class="modal fade" id="adminBillModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">🧾 Bill Receipt</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col">
+                            <p class="mb-1"><strong>Bill #:</strong> <span id="abill_number"></span></p>
+                            <p class="mb-1"><strong>Hotel:</strong> <span id="abill_hotel"></span></p>
+                        </div>
+                        <div class="col text-end">
+                            <p class="mb-1"><strong>Bill Date:</strong> <span id="abill_date"></span></p>
+                            <p class="mb-1"><strong>Due Date:</strong> <span id="abill_due"></span></p>
+                            <p class="mb-1"><strong>Status:</strong> <span id="abill_status"></span></p>
+                        </div>
+                    </div>
+                    <hr>
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>Item</th>
+                                <th>Unit Price</th>
+                                <th>Qty</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="abill_items"></tbody>
+                    </table>
+                    <div class="text-end mt-2">
+                        <p class="mb-1">Subtotal: <strong id="abill_subtotal"></strong></p>
+                        <p class="mb-1 text-danger" id="abill_penalty_row">Penalty (5%): <strong id="abill_penalty"></strong></p>
+                        <h5>Total Due: <strong id="abill_total"></strong></h5>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <div id="abill_action_buttons">
+                        <button type="button" class="btn btn-warning me-2" id="markPartialBtn" onclick="markBillStatus('partial')">
+                            Mark as Partial
+                        </button>
+                        <button type="button" class="btn btn-success" id="markPaidBtn" onclick="markBillStatus('paid')">
+                            Mark as Paid
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="container-fluid mt-5 w-75">
         <div class="row mb-4">
             <div class="col">
-                <h1 class="mb-0">Stock Transactions</h1>
-                <p class="text-muted">Track all stock movements (IN/OUT)</p>
+                <h2 class="mb-0">Bills & Transactions</h2>
+                <p class="text-muted">View all customer bills and transactions</p>
             </div>
         </div>
 
@@ -117,110 +132,113 @@ $items = getAllItems($pdo);
             </div>
         <?php endif; ?>
 
-        <!-- Add Transaction Button -->
-        <div class="mb-3">
-            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
-                + Record Transaction
-            </button>
-        </div>
-
-        <!-- Transactions Table -->
+        <!-- Bills Table -->
         <div class="card">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0">Transaction History</h5>
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">All Bills</h5>
+                <span class="badge bg-light text-success"><?php echo count($allBills); ?> Bills</span>
             </div>
-            <div class="card-body table-responsive">
-                <table class="table table-hover">
+            <div class="cards-cont card-body table-responsive p-0">
+                <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Date</th>
-                            <th>Item Name</th>
-                            <th>Type</th>
-                            <th>Quantity</th>
-                            <th>User</th>
-                            <th>Remarks</th>
+                            <th>Bill Number</th>
+                            <th>Customer</th>
+                            <th>Bill Date</th>
+                            <th>Due Date</th>
+                            <th>Total Amount</th>
+                            <th>Penalty</th>
+                            <th>Status</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (!empty($transactions)): ?>
-                            <?php foreach ($transactions as $trans): ?>
-                                <tr>
-                                    <td><?php echo date('M d, Y H:i', strtotime($trans['transactionDate'])); ?></td>
-                                    <td><?php echo htmlspecialchars($trans['itemName']); ?></td>
+                        <?php if (!empty($allBills)): ?>
+                            <?php foreach ($allBills as $bill): ?>
+                                <tr class="<?php echo strtotime($bill['dueDate']) < strtotime('today') && $bill['status'] === 'unpaid' ? 'table-danger' : ''; ?>">
+                                    <td><strong><?php echo htmlspecialchars($bill['billNumber']); ?></strong></td>
+                                    <td><?php echo htmlspecialchars($bill['fullName']); ?></td>
+                                    <td><?php echo date('M d, Y', strtotime($bill['billDate'])); ?></td>
                                     <td>
-                                        <span class="badge <?php echo $trans['transactionType'] === 'IN' ? 'bg-success' : 'bg-danger'; ?>">
-                                            <?php echo $trans['transactionType']; ?>
+                                        <span class="<?php echo strtotime($bill['dueDate']) < strtotime('today') && $bill['status'] !== 'paid' ? 'text-danger fw-bold' : ''; ?>">
+                                            <?php echo date('M d, Y', strtotime($bill['dueDate'])); ?>
                                         </span>
                                     </td>
-                                    <td><?php echo $trans['quantity']; ?></td>
-                                    <td><?php echo htmlspecialchars($trans['fullName']); ?></td>
-                                    <td><?php echo htmlspecialchars($trans['remarks'] ?? '-'); ?></td>
+                                    <td>₱<?php echo number_format($bill['totalAmount'], 2); ?></td>
+                                    <td>
+                                        <?php echo $bill['penaltyAmount'] > 0 ? '₱' . number_format($bill['penaltyAmount'], 2) : '—'; ?>
+                                    </td>
+                                    <td>
+                                        <span class="badge
+                                        <?php
+                                        if ($bill['status'] === 'paid') {
+                                            echo 'bg-success';
+                                        } elseif ($bill['status'] === 'partial') {
+                                            echo 'bg-warning text-dark';
+                                        } else {
+                                            echo 'bg-danger';
+                                        }
+                                        ?>">
+                                            <?php echo strtoupper($bill['status']); ?>
+                                        </span>
+                                        <?php if (strtotime($bill['dueDate']) < strtotime('today') && $bill['status'] !== 'paid'): ?>
+                                            <br><small class="text-danger">OVERDUE</small>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewBill(<?php echo $bill['billID']; ?>)">View</button>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="6" class="text-center text-muted">No transactions found</td>
+                                <td colspan="8" class="text-center text-muted py-4">No bills found</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
         </div>
-    </main>
 
-    <!-- Add Transaction Modal -->
-    <div class="modal fade" id="addTransactionModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">Record Stock Transaction</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <!-- Summary Stats -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="card-title text-muted">Total Bills</h6>
+                        <h3 class="text-success"><?php echo count($allBills); ?></h3>
+                    </div>
                 </div>
-                <form method="POST">
-                    <div class="modal-body">
-                        <input type="hidden" name="action" value="add">
-
-                        <div class="mb-3">
-                            <label for="itemID" class="form-label">Item</label>
-                            <select id="itemID" name="itemID" class="form-control" required>
-                                <option value="">Select Item</option>
-                                <?php foreach ($items as $item): ?>
-                                    <option value="<?php echo $item['itemID']; ?>">
-                                        <?php echo htmlspecialchars($item['itemName']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="transactionType" class="form-label">Transaction Type</label>
-                            <select id="transactionType" name="transactionType" class="form-control" required>
-                                <option value="">Select Type</option>
-                                <option value="IN">Stock In (Received)</option>
-                                <option value="OUT">Stock Out (Sold/Used)</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="quantity" class="form-label">Quantity</label>
-                            <input type="number" id="quantity" name="quantity" class="form-control" min="1" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="remarks" class="form-label">Remarks (Optional)</label>
-                            <textarea id="remarks" name="remarks" class="form-control" rows="3" placeholder="Add any notes..."></textarea>
-                        </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="card-title text-muted">Paid</h6>
+                        <h3 class="text-success"><?php echo count(array_filter($allBills, fn($b) => $b['status'] === 'paid')); ?></h3>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-success">Record Transaction</button>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="card-title text-muted">Unpaid</h6>
+                        <h3 class="text-danger"><?php echo count(array_filter($allBills, fn($b) => $b['status'] === 'unpaid')); ?></h3>
                     </div>
-                </form>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="card-title text-muted">Total Revenue</h6>
+                        <h3 class="text-primary">₱<?php echo number_format(array_sum(array_column($allBills, 'totalAmount')), 2); ?></h3>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
 </body>
 
 </html>

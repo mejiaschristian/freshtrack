@@ -2,33 +2,28 @@
 session_start();
 require_once 'auth.php';
 
-// sign-up logic
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = isset($_POST['email']) ? trim($_POST['email']) : '';
-    $fullName = isset($_POST['fullName']) ? trim($_POST['fullName']) : '';
-    $password = isset($_POST['password']) ? $_POST['password'] : '';
-    $confirm_password = isset($_POST['confirm_password']) ? $_POST['confirm_password'] : '';
+    $email            = trim($_POST['email'] ?? '');
+    $fullName         = trim($_POST['fullName'] ?? '');
+    $password         = $_POST['password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
 
-    $result = register($email, $fullName, $password);
-
-    // Check if passwords match
+    // Check passwords first before calling register
     if ($password !== $confirm_password) {
         $_SESSION['register_error'] = "Passwords do not match.";
     } else {
-        $result = register($email, $fullName, $password);
-    }
+        $result = register($email, $fullName, $password); // only called once
 
-    if ($result['success']) {
-        // Redirect based on user role
-        if (isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true) {
-            header('Location: dashboard.php');
+        if ($result['success']) {
+            if (isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true) {
+                header('Location: dashboard.php');
+            } else {
+                header('Location: index.php');
+            }
+            exit();
         } else {
-            header('Location: shop.php');
+            $_SESSION['register_error'] = $result['message'];
         }
-        exit();
-    } else {
-        // Store error message in session to display
-        $_SESSION['register_error'] = $result['message'];
     }
 }
 ?>
