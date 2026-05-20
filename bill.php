@@ -38,7 +38,7 @@ if ($billID) {
 
     // Get orders under this bill
     $stmt = $pdo->prepare("
-        SELECT tblOrders.orderID, tblOrders.orderDate, tblOrders.totalAmount
+        SELECT tblOrders.orderID, tblOrders.orderDate, tblOrders.totalAmount, tblOrders.orderType
         FROM tblBillOrders
         JOIN tblOrders ON tblBillOrders.orderID = tblOrders.orderID
         WHERE tblBillOrders.billID = :billID
@@ -92,11 +92,23 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
                         <li class="nav-item"><a class="nav-link" href="shop.php">Shop</a></li>
                         <li class="nav-item"><a class="nav-link" href="cart.php">Cart</a></li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="hotel_orders.php">Orders
+                            </a>
+                        </li>
                         <li class="nav-item"><a class="nav-link active" href="bill.php">Transactions</a></li>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">More</a>
-                            <div class="dropdown-menu">
-                                <a class="dropdown-item" href="index.php">Log Out</a>
+                            <a
+                                class="nav-link dropdown-toggle"
+                                href="#"
+                                id="dropdownId"
+                                data-bs-toggle="dropdown"
+                                aria-haspopup="true"
+                                aria-expanded="false">
+                                More
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="dropdownId">
+                                <a class="dropdown-item btn btn-danger" href="index.php">Log Out</a>
                             </div>
                         </li>
                     </ul>
@@ -171,6 +183,13 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td colspan="4" class="bg-light">
+                                                <strong>Order Type:</strong> <?php echo htmlspecialchars(ucfirst($order['orderType'] ?? 'N/A')); ?>
+                                            </td>
+                                        </tr>
+                                    </tfoot>
                                 </table>
                             <?php endforeach; ?>
 

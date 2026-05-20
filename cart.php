@@ -24,6 +24,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'remov
 // Handle checkout
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'checkout') {
     try {
+        // Get order type from form submission
+        $orderType = $_POST['orderType'] ?? 'pickup';
+
         // Get cart
         $stmt = $pdo->prepare("SELECT cartID FROM tblCart WHERE userID = :userID");
         $stmt->execute(['userID' => $userID]);
@@ -43,9 +46,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
             // Calculate total
             $total = array_sum(array_map(fn($i) => $i['itemPrice'] * $i['quantity'], $cartItems));
 
-            // Insert into tblOrders
-            $pdo->prepare("INSERT INTO tblOrders (userID, totalAmount, orderDate, status) VALUES (:userID, :total, NOW(), 'pending')")
-                ->execute(['userID' => $userID, 'total' => $total]);
+            // Insert into tblOrders with the new orderType column
+            $pdo->prepare("INSERT INTO tblOrders (userID, totalAmount, orderDate, status, orderType) VALUES (:userID, :total, NOW(), 'pending', :orderType)")
+                ->execute([
+                    'userID' => $userID,
+                    'total' => $total,
+                    'orderType' => $orderType
+                ]);
             $orderID = $pdo->lastInsertId();
 
             // Insert order items + deduct stock
@@ -128,11 +135,9 @@ if ($cart) {
 
 <head>
     <title>FreshTrack - Cart</title>
-    <!-- Required meta tags -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- Bootstrap CSS v5.3.8 -->
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
         rel="stylesheet"
@@ -177,6 +182,10 @@ if ($cart) {
                             <span class="visually-hidden">(current)</span>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="hotel_orders.php">Orders
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="bill.php">Transactions</a>
                         </li>
                         <li class="nav-item dropdown">
@@ -190,7 +199,6 @@ if ($cart) {
                                 More
                             </a>
                             <div class="dropdown-menu" aria-labelledby="dropdownId">
-                                <a class="dropdown-item" href="settings.php">Settings</a>
                                 <a class="dropdown-item btn btn-danger" href="index.php">Log Out</a>
                             </div>
                         </li>
@@ -218,7 +226,6 @@ if ($cart) {
                 </div>
             <?php else: ?>
                 <div class="row g-4">
-                    <!-- Cart Items -->
                     <div class="col-lg-8">
                         <div class="card">
                             <div class="card-body p-0">
@@ -264,7 +271,6 @@ if ($cart) {
                         </div>
                     </div>
 
-                    <!-- Order Summary -->
                     <div class="col-lg-4">
                         <div class="card">
                             <div class="card-header bg-success-subtle">
@@ -280,8 +286,26 @@ if ($cart) {
                                     <strong>Total</strong>
                                     <strong>₱<?php echo number_format($total, 2); ?></strong>
                                 </div>
+
                                 <form method="POST">
                                     <input type="hidden" name="action" value="checkout">
+
+                                    <div class="mb-4">
+                                        <label class="form-label fw-bold">Order Type</label>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="radio" name="orderType" id="pickup" value="pickup" checked required>
+                                            <label class="form-check-label" for="pickup">
+                                                Pickup
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="orderType" id="delivery" value="delivery" required>
+                                            <label class="form-check-label" for="delivery">
+                                                Delivery
+                                            </label>
+                                        </div>
+                                    </div>
+
                                     <button type="submit" class="btn btn-success w-100">Checkout</button>
                                 </form>
                                 <a href="shop.php" class="btn btn-outline-secondary w-100 mt-2">Continue Shopping</a>

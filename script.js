@@ -74,11 +74,23 @@ function viewOrderDetails(orderID) {
             const order = data.order;
             const items = data.items;
 
-            // Populate order info
             document.getElementById("modal_orderID").textContent =
                 order.orderID;
             document.getElementById("modal_orderHotel").textContent =
                 order.fullName;
+
+            // Format orderType (e.g., "pickup" -> "Pickup")
+            const typeDisplay = order.orderType
+                ? order.orderType.charAt(0).toUpperCase() +
+                  order.orderType.slice(1)
+                : "N/A";
+
+            // Check if element exists before setting (prevents crash if HTML is missing it)
+            const typeEl = document.getElementById("modal_orderType");
+            if (typeEl) {
+                typeEl.textContent = typeDisplay;
+            }
+
             document.getElementById("modal_orderDate").textContent = new Date(
                 order.orderDate,
             ).toLocaleDateString("en-PH", {
@@ -92,34 +104,37 @@ function viewOrderDetails(orderID) {
                     minimumFractionDigits: 2,
                 });
 
-            // Status badge
             const statusColors = {
                 pending: "warning",
                 billed: "success",
                 paid: "info",
+                partial: "warning",
             };
             const color = statusColors[order.status] || "secondary";
             document.getElementById("modal_orderStatus").innerHTML =
                 `<span class="badge bg-${color} text-dark">${order.status.toUpperCase()}</span>`;
 
-            // Show/hide buttons based on status
+            // Null checks — these buttons don't exist on hotel page
             const completeBtn = document.getElementById("completeOrderBtn");
             const viewBillBtn = document.getElementById("viewBillBtn");
 
-            if (order.status === "pending") {
-                completeBtn.classList.remove("d-none");
-                viewBillBtn.classList.add("d-none");
-            } else {
-                completeBtn.classList.add("d-none");
-                // Show view bill if billed
-                if (data.billID) {
+            if (completeBtn) {
+                completeBtn.classList.toggle(
+                    "d-none",
+                    order.status !== "pending",
+                );
+            }
+
+            if (viewBillBtn) {
+                if (order.status !== "pending" && data.billID) {
                     viewBillBtn.classList.remove("d-none");
                     viewBillBtn.onclick = () => viewBill(data.billID);
                     viewBillBtn.href = "#";
+                } else {
+                    viewBillBtn.classList.add("d-none");
                 }
             }
 
-            // Populate items
             const tbody = document.getElementById("modal_orderItems");
             tbody.innerHTML = "";
             items.forEach((item) => {
@@ -151,6 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const confirmBtn = document.getElementById("confirmCompleteBtn");
     if (confirmBtn) {
+        // this prevents crash when button doesn't exist pls don't remove
         confirmBtn.addEventListener("click", () => {
             if (confirmModal) confirmModal.hide();
             processBillOrder();

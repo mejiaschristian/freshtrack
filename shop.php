@@ -1,6 +1,34 @@
 <?php
 session_start();
 include 'db.php';
+require_once 'auth.php';
+
+if (!isLoggedIn()) {
+    header('Location: index.php');
+    exit();
+}
+
+// Search and filter
+$search   = trim($_GET['search'] ?? '');
+$category = $_GET['category'] ?? '';
+
+$sql    = "SELECT tblItems.*, tblcategories.categoryName FROM tblItems JOIN tblcategories ON tblItems.categoryID = tblcategories.categoryID WHERE 1=1";
+$params = [];
+
+if (!empty($search)) {
+    $sql     .= " AND (tblItems.itemName LIKE :search OR tblItems.itemDescription LIKE :search)";
+    $params['search'] = '%' . $search . '%';
+}
+
+if (!empty($category)) {
+    $sql     .= " AND tblItems.categoryID = :category";
+    $params['category'] = $category;
+}
+
+$sql .= " ORDER BY tblItems.itemDateAdded DESC";
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $successItem = $_GET['success_item'] ?? '';
 $successQty  = $_GET['success_qty'] ?? '';
@@ -34,19 +62,6 @@ $successQty  = $_GET['success_qty'] ?? '';
                         alt="FreshTrack"
                         class="img-fluid d-block w-auto z-1 mt-2 mx-5" />
                 </a>
-                <search class="w-50">
-                    <div class="input-group mb-3">
-                        <input
-                            type="text"
-                            class="form-control"
-                            placeholder="Search for items..."
-                            aria-label="Search for items"
-                            aria-describedby="button-search" />
-                        <button class="btn bg-white type=" button" id="button-search">
-                            <img src="search.svg" alt="Search" width="20" />
-                        </button>
-                    </div>
-                </search>
                 <button
                     class="navbar-toggler p-4"
                     type="button"
@@ -73,6 +88,9 @@ $successQty  = $_GET['success_qty'] ?? '';
                             <a class="nav-link" href="cart.php">Cart</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="hotel_orders.php">Orders</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="bill.php">Transactions</a>
                         </li>
                         <li class="nav-item dropdown">
@@ -86,7 +104,6 @@ $successQty  = $_GET['success_qty'] ?? '';
                                 More
                             </a>
                             <div class="dropdown-menu" aria-labelledby="dropdownId">
-                                <a class="dropdown-item" href="settings.php">Settings</a>
                                 <a class="dropdown-item btn btn-danger" href="index.php">Log Out</a>
                             </div>
                         </li>
@@ -151,46 +168,113 @@ $successQty  = $_GET['success_qty'] ?? '';
         <div class="toast-container position-fixed bottom-0 end-0 p-3">
             <div id="cartToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="d-flex">
-                    <div class="toast-body" id="cartToastMessage">
-                        Item added to cart!
-                    </div>
+                    <div class="toast-body" id="cartToastMessage">Item added to cart!</div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
                 </div>
             </div>
         </div>
+
         <div class="container-lg mt-5">
-            <h2>Shop</h2>
-            <p>Browse and purchase fresh items for your hotel!</p>
-        </div>
-        <div class="container">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <h2 class="mb-0">Welcome, <?php echo $_SESSION['username'] ?? 'Guest'; ?>!</h2>
+                    <p class="text-muted">Browse and purchase fresh items for your hotel!</p>
+                </div>
+                <span class="badge bg-success fs-6"><?php echo count($items); ?> items</span>
+            </div>
 
-            <div class="row">
-                <?php
-                try {
-                    $stmt = $pdo->query("SELECT * FROM tblItems");
+            <!-- Search & Filter Bar -->
+            <form method="GET" action="shop.php" class="card card-body mb-4 bg-light border-0 shadow-sm">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small mb-1">Search</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="search" placeholder="Search items..." value="<?php echo htmlspecialchars($search); ?>">
+                            <button class="btn btn-success" type="submit">
+                                <img src="search.svg" alt="Search" width="18">
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small mb-1">Category</label>
+                        <select class="form-select" name="category" onchange="this.form.submit()">
+                            <option value="">All Categories</option>
+                            <option value="3" <?php echo $category == '3' ? 'selected' : ''; ?>>Fruits</option>
+                            <option value="2" <?php echo $category == '2' ? 'selected' : ''; ?>>Vegetables</option>
+                            <option value="1" <?php echo $category == '1' ? 'selected' : ''; ?>>Dairy</option>
+                            <option value="4" <?php echo $category == '4' ? 'selected' : ''; ?>>Beverages</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="shop.php" class="btn btn-outline-secondary w-100">Clear</a>
+                    </div>
+                </div>
+                <?php if (!empty($search) || !empty($category)): ?>
+                    <div class="mt-2 small text-muted">
+                        Showing results
+                        <?php if (!empty($search)): ?>for "<strong><?php echo htmlspecialchars($search); ?></strong>"<?php endif; ?>
+                        <?php if (!empty($category)): ?>in <strong>
+                            <?php
+                            $catNames = ['1' => 'Dairy', '2' => 'Vegetables', '3' => 'Fruits', '4' => 'Beverages'];
+                            echo $catNames[$category] ?? '';
+                            ?></strong><?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </form>
 
-                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                        echo '
-                            <div class="col g-3 mb-4">
-                                <div class="item-card card h-100">
-                                    <img src="' . htmlspecialchars($row['itemImage']) . '" class="card-img-top" alt="' . htmlspecialchars($row['itemName']) . '">
-                                    <div class="card-body d-flex flex-column">
-                                        <h5 class="card-title">' . htmlspecialchars($row['itemName']) . '</h5>
-                                        <p class="card-text">' . htmlspecialchars($row['itemDescription']) . '</p>
-                                        <p class="card-text mt-auto"><strong>₱' . number_format($row['itemPrice'], 2) . ' per ' . htmlspecialchars($row['itemUnit']) . '</strong></p>
+            <!-- Items Grid -->
+            <?php if (empty($items)): ?>
+                <div class="text-center py-5">
+                    <h5 class="text-muted">No items found.</h5>
+                    <a href="shop.php" class="btn btn-success mt-3">Browse All Items</a>
+                </div>
+            <?php else: ?>
+                <div class="row row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4">
+                    <?php foreach ($items as $row): ?>
+                        <div class="col">
+                            <div class="item-card card h-100 shadow-sm">
+                                <?php if (!empty($row['itemImage'])): ?>
+                                    <img src="<?php echo htmlspecialchars($row['itemImage']); ?>"
+                                        class="card-img-top"
+                                        alt="<?php echo htmlspecialchars($row['itemName']); ?>"
+                                        style="height: 180px; object-fit: cover;">
+                                <?php else: ?>
+                                    <div class="bg-light d-flex align-items-center justify-content-center" style="height:180px;">
+                                        <span class="text-muted small">No image</span>
                                     </div>
-                                    <div class="card-footer p-1">
-                                        <button class="btn btn-success w-100" onclick=\'openCartModal(' . json_encode($row) . ')\'>Add to Cart</button>
+                                <?php endif; ?>
+
+                                <div class="card-body d-flex flex-column">
+                                    <span class="badge bg-success-subtle text-success mb-2 align-self-start">
+                                        <?php echo htmlspecialchars($row['categoryName']); ?>
+                                    </span>
+                                    <h6 class="card-title"><?php echo htmlspecialchars($row['itemName']); ?></h6>
+                                    <p class="card-text text-muted small"><?php echo htmlspecialchars($row['itemDescription']); ?></p>
+                                    <div class="mt-auto">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <strong class="text-success fs-5">₱<?php echo number_format($row['itemPrice'], 2); ?></strong>
+                                            <small class="text-muted">per <?php echo htmlspecialchars($row['itemUnit']); ?></small>
+                                        </div>
+                                        <small class="text-muted badge bg-danger-subtle"><?php echo $row['reorderLevel']; ?> items sold</small><br>
+                                        <small class="text-muted">Stock: <?php echo $row['itemQuantity']; ?> <?php echo htmlspecialchars($row['itemUnit']); ?></small>
                                     </div>
                                 </div>
+
+                                <div class="card-footer bg-white border-0 p-2">
+                                    <?php if ($row['itemQuantity'] > 0): ?>
+                                        <button class="btn btn-success w-100"
+                                            onclick='openCartModal(<?php echo json_encode($row); ?>)'>
+                                            Add to Cart
+                                        </button>
+                                    <?php else: ?>
+                                        <button class="btn btn-secondary w-100" disabled>Out of Stock</button>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                            ';
-                    }
-                } catch (PDOException $e) {
-                    echo "Error: " . $e->getMessage();
-                }
-                ?>
-            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
         </div>
     </main>
     <script

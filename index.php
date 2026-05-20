@@ -4,10 +4,10 @@ require_once 'auth.php';
 
 // login logic
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email_or_username = isset($_POST['email_or_username']) ? trim($_POST['email_or_username']) : '';
+    $email = isset($_POST['email']) ? trim($_POST['email']) : '';
     $password = isset($_POST['password']) ? $_POST['password'] : '';
 
-    $result = login($email_or_username, $password);
+    $result = login($email, $password);
 
     if ($result['success']) {
         // Redirect based on user role
@@ -68,19 +68,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <!-- Login Form -->
                         <form method="POST" action="">
-                            <div class="mb-3">
-                                <label for="email_or_username" class="form-label fw-5">Email or Username</label>
+                            <div class="form-floating mb-3">
                                 <input
                                     type="text"
                                     class="form-control login-input"
-                                    id="email_or_username"
-                                    name="email_or_username"
-                                    placeholder="Enter your email or username"
+                                    id="email"
+                                    name="email"
+                                    placeholder="Enter your email"
                                     required />
+                                <label for="email">Email</label>
                             </div>
 
-                            <div class="mb-4">
-                                <label for="password" class="form-label fw-5">Password</label>
+                            <div class="form-floating mb-4">
                                 <input
                                     type="password"
                                     class="form-control login-input"
@@ -88,6 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     name="password"
                                     placeholder="Enter your password"
                                     required />
+                                <label for="password">Password</label>
                             </div>
 
                             <button
@@ -115,9 +115,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <!-- Right Side - Image -->
-                <div class="col-lg-6 d-none d-lg-block login-image-side">
+                <div class="col-lg-6 d-none opacity-75 d-lg-block login-image-side">
                     <img
-                        src="login.webp"
+                        src="login.avif"
                         alt="Login Background"
                         class="w-100 h-100 object-fit-cover" />
                 </div>

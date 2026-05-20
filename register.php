@@ -72,8 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <!-- Login Form -->
                         <form method="POST" action="">
-                            <div class="mb-3">
-                                <label for="email" class="form-label fw-5">Email</label>
+                            <div class="form-floating mb-3">
                                 <input
                                     type="text"
                                     class="form-control login-input"
@@ -81,10 +80,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     name="email"
                                     placeholder="Enter your email"
                                     required />
+                                <label for="email">Email</label>
                             </div>
 
-                            <div class="mb-3">
-                                <label for="fullName" class="form-label fw-5">Hotel Name</label>
+                            <div class="form-floating mb-3">
                                 <input
                                     type="text"
                                     class="form-control login-input"
@@ -92,10 +91,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     name="fullName"
                                     placeholder="Enter your hotel name"
                                     required />
+                                <label for="fullName">Hotel Name</label>
                             </div>
 
-                            <div class="mb-4">
-                                <label for="password" class="form-label fw-5">Password</label>
+                            <div class="form-floating mb-4">
                                 <input
                                     type="password"
                                     class="form-control login-input"
@@ -103,10 +102,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     name="password"
                                     placeholder="Enter your password"
                                     required />
+                                <label for="password">Password</label>
                             </div>
 
-                            <div class="mb-4">
-                                <label for="confirm_password" class="form-label fw-5">Confirm Password</label>
+                            <div class="form-floating mb-4">
                                 <input
                                     type="password"
                                     class="form-control login-input"
@@ -114,6 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     name="confirm_password"
                                     placeholder="Confirm your password"
                                     required />
+                                <label for="confirm_password">Confirm Password</label>
                             </div>
 
                             <button
@@ -136,9 +136,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <!-- Right Side - Image -->
-                <div class="col-lg-6 d-none d-lg-block login-image-side">
+                <div class="col-lg-6 d-none opacity-75 d-lg-block login-image-side">
                     <img
-                        src="login.webp"
+                        src="login.avif"
                         alt="Login Background"
                         class="w-100 h-100 object-fit-cover" />
                 </div>

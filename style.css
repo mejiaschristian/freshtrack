@@ -132,16 +132,6 @@
     outline: none;
 }
 
-.login-input::placeholder {
-    color: var(--text-secondary);
-}
-
-.form-label {
-    font-size: 0.875rem;
-    color: var(--text-primary);
-    margin-bottom: 0.5rem;
-}
-
 /* Button Styles */
 .btn-login {
     background: linear-gradient(
@@ -330,7 +320,6 @@
 }
 
 .item-card .card-body {
-    height: 180px;
     overflow: hidden;
 }
 
