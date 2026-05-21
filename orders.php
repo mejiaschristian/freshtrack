@@ -94,7 +94,7 @@ if (!isLoggedIn()) {
                         <div class="col">
                             <p class="mb-1"><strong>Order #:</strong> <span id="modal_orderID"></span></p>
                             <p class="mb-1"><strong>Hotel:</strong> <span id="modal_orderHotel"></span></p>
-                            <p class="mb-1"><strong>Order Type:</strong> <span id="modal_orderType"></span></p>
+                            <p class="mb-1 badge bg-primary fs-6">For <span id="modal_orderType"></span></p>
                         </div>
                         <div class="col text-end">
                             <p class="mb-1"><strong>Date:</strong> <span id="modal_orderDate"></span></p>
@@ -230,7 +230,7 @@ if (!isLoggedIn()) {
                                     echo '    <p class="card-text"><strong>Hotel:</strong> ' . htmlspecialchars($order['hotelName'] ?? 'N/A') . '</p>';
                                     echo '    <p class="card-text"><strong>Date:</strong> ' . date('M d, Y', strtotime($order['orderDate'])) . '</p>';
                                     echo '    <p class="card-text"><strong>Total:</strong> ₱' . number_format($order['totalAmount'], 2) . '</p>';
-                                    echo '    <p class="card-text"><span class="badge bg-warning text-dark">Pending</span></p>';
+                                    echo '    <p class="card-text"><span class="badge bg-warning text-dark text-uppercase">' . htmlspecialchars($order['status']) . '</span></p>';
                                     echo '    <button class="btn btn-primary" onclick="viewOrderDetails(' . $order['orderID'] . ')">View Details</button>';
                                     echo '  </div>';
                                     echo '</div>';
@@ -267,7 +267,7 @@ if (!isLoggedIn()) {
                                     echo '    <p class="card-text"><strong>Hotel:</strong> ' . htmlspecialchars($order['hotelName'] ?? 'N/A') . '</p>';
                                     echo '    <p class="card-text"><strong>Date:</strong> ' . date('M d, Y', strtotime($order['orderDate'])) . '</p>';
                                     echo '    <p class="card-text"><strong>Total:</strong> ₱' . number_format($order['totalAmount'], 2) . '</p>';
-                                    echo '    <p class="card-text"><span class="badge bg-success">Billed</span></p>';
+                                    echo '    <p class="card-text"><span class="badge bg-success text-uppercase">' . htmlspecialchars($order['status']) . '</span></p>';
                                     echo '    <button class="btn btn-primary" onclick="viewOrderDetails(' . $order['orderID'] . ')">View Details</button>';
                                     echo '  </div>';
                                     echo '</div>';

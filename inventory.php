@@ -22,7 +22,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $price = $_POST['itemPrice'];
         $quantity = $_POST['itemQuantity'] ?? 1;
         $unit = $_POST['itemUnit'];
-        $dateAdded = $_POST['itemDateAdded'] ?? date('Y-m-d');
         $expiryDate = $_POST['itemExpiryDate'] ?? date('Y-m-d', strtotime('+7 days'));
 
         // Handle image upload
@@ -48,8 +47,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         if (!empty($name) && !empty($category) && !empty($price) && !empty($quantity)) {
             try {
-                $sql = "INSERT INTO tblItems (itemName, itemDescription, itemImage, categoryID, itemPrice, itemQuantity, itemUnit, itemDateAdded, itemExpiryDate) 
-                    VALUES (:itemName, :itemDescription, :itemImage, :categoryID, :itemPrice, :itemQuantity, :itemUnit, :itemDateAdded, :itemExpiryDate)";
+                $sql = "INSERT INTO tblItems (itemName, itemDescription, itemImage, categoryID, itemPrice, itemQuantity, itemUnit, itemExpiryDate) 
+                    VALUES (:itemName, :itemDescription, :itemImage, :categoryID, :itemPrice, :itemQuantity, :itemUnit, :itemExpiryDate)";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([
                     'itemName' => $name,
@@ -59,7 +58,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     'itemPrice' => $price,
                     'itemQuantity' => $quantity,
                     'itemUnit' => $unit,
-                    'itemDateAdded' => $dateAdded,
                     'itemExpiryDate' => $expiryDate
                 ]);
                 $message = "Item '$name' added successfully!";
@@ -76,7 +74,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $price = $_POST['itemPrice'];
         $quantity = $_POST['itemQuantity'];
         $unit = $_POST['itemUnit'];
-        $dateAdded = $_POST['itemDateAdded'] ?? date('Y-m-d');
         $expiryDate = $_POST['itemExpiryDate'] ?? date('Y-m-d', strtotime('+7 days'));
 
         // Keep existing image by default
@@ -105,7 +102,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         try {
             $sql = "UPDATE tblItems SET itemName=:name, itemDescription=:description, itemImage=:image, 
                 categoryID=:category, itemPrice=:price, itemQuantity=:quantity, itemUnit=:unit, 
-                itemDateAdded=:dateAdded, itemExpiryDate=:expiryDate WHERE itemID=:itemID";
+                itemExpiryDate=:expiryDate WHERE itemID=:itemID";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
                 'name' => $name,
@@ -115,7 +112,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 'price' => $price,
                 'quantity' => $quantity,
                 'unit' => $unit,
-                'dateAdded' => $dateAdded,
                 'expiryDate' => $expiryDate,
                 'itemID' => $_POST['itemID']
             ]);
@@ -139,17 +135,54 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 }
+
+// Get search and filter parameters
+$search   = trim($_GET['search'] ?? '');
+$category = $_GET['category'] ?? '';
+$sortBy   = $_GET['sortBy'] ?? 'itemID'; // Default sort to ID
+$sortOrder = $_GET['sortOrder'] ?? 'ASC';
+
+// Build query
+$sql = "SELECT tblItems.*, tblCategories.categoryName FROM tblItems 
+        JOIN tblCategories ON tblItems.categoryID = tblCategories.categoryID 
+        WHERE 1=1";
+$params = [];
+
+if (!empty($search)) {
+    // Search by ID or Name
+    $sql .= " AND (tblItems.itemName LIKE :search OR tblItems.itemDescription LIKE :search OR tblItems.itemID = :exactSearch)";
+    $params['search'] = '%' . $search . '%';
+    $params['exactSearch'] = $search; // Exact match for ID
+}
+
+if (!empty($category)) {
+    $sql .= " AND tblItems.categoryID = :category";
+    $params['category'] = $category;
+}
+
+// Sanitize sort column (Added itemID and itemDateAdded)
+$allowedSort = ['itemID', 'itemName', 'itemPrice', 'itemQuantity', 'itemDateAdded', 'itemExpiryDate'];
+if (!in_array($sortBy, $allowedSort)) $sortBy = 'itemID';
+if (!in_array(strtoupper($sortOrder), ['ASC', 'DESC'])) $sortOrder = 'ASC';
+
+$sql .= " ORDER BY tblItems." . $sortBy . " " . $sortOrder;
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get all categories for filter dropdown
+$catStmt = $pdo->query("SELECT * FROM tblCategories ORDER BY categoryName");
+$categories = $catStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!doctype html>
 <html lang="en" data-bs-theme="light">
 
 <head>
     <title>FreshTrack - Inventory</title>
-    <!-- Required meta tags -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- Bootstrap CSS v5.3.8 -->
     <link
         href="bootstrap.min.css"
         rel="stylesheet"
@@ -208,14 +241,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </header>
     <main>
         <div class="container-fluid w-75">
-            <!-- Message Display -->
             <?php if ($message): ?>
                 <div class="alert alert-<?php echo $messageType; ?> alert-dismissible fade show m-2" role="alert">
                     <?php echo $message; ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             <?php endif; ?>
-            <!-- Add Modal -->
             <div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemLabel" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content">
@@ -274,7 +305,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 </div>
             </div>
 
-            <!-- Edit Modal -->
             <div class="modal fade" id="editItemModal" tabindex="-1" aria-labelledby="editItemLabel" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content">
@@ -325,10 +355,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     <label for="edit_itemUnit" class="form-label">Item Unit (e.g., kg, pcs)</label>
                                 </div>
                                 <div class="form-floating mb-3">
-                                    <input type="date" class="form-control" id="edit_itemDateAdded" name="itemDateAdded" placeholder="Select date added" required>
-                                    <label for="edit_itemDateAdded" class="form-label">Date Added</label>
-                                </div>
-                                <div class="form-floating mb-3">
                                     <input type="date" class="form-control" id="edit_itemExpiryDate" name="itemExpiryDate" placeholder="Select expiry date" required>
                                     <label for="edit_itemExpiryDate" class="form-label">Expiry Date</label>
                                 </div>
@@ -370,46 +396,43 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <p>Manage your inventory here.</p>
                 <div class="mt-5">
                     <div class="card mb-4">
-                        <h3 class="card-header bg-success-subtle">
-                            <div class="d-flex flex-wrap gap-3 align-items-center">
-                                <div class="col">
-                                    <search>
-                                        <input type="text" class="form-control" placeholder="Search inventory..." />
-                                    </search>
-                                </div>
-                                <button class="btn btn-outline-success" type="button">
-                                    <img src="search.svg" class="img-fluid" alt="Search" width="20">
-                                </button>
-                                <div class="col">
-                                    <div class="btn-group w-100">
-                                        <button
-                                            class="btn btn-secondary dropdown-toggle"
-                                            type="button"
-                                            id="triggerId"
-                                            data-bs-toggle="dropdown"
-                                            aria-haspopup="true"
-                                            aria-expanded="false">
-                                            Filter Column
-                                        </button>
-                                        <div
-                                            class="dropdown-menu w-100"
-                                            aria-labelledby="triggerId">
-                                            <a class="dropdown-item" href="#">ID</a>
-                                            <a class="dropdown-item" href="#">Name</a>
-                                            <a class="dropdown-item" href="#">Description</a>
-                                        </div>
-                                    </div>
+                        <div class="card-header bg-success-subtle">
+                            <form method="GET" class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                                <input type="text" name="search" class="form-control" style="width: 250px;" placeholder="Search ID or Name..." value="<?php echo htmlspecialchars($search); ?>">
 
-                                </div>
-                                <div class="col">
-                                    <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#addItemModal">
-                                        Add Item
-                                    </button>
-                                </div>
+                                <select name="category" class="form-select w-auto">
+                                    <option value="">All Categories</option>
+                                    <?php foreach ($categories as $cat): ?>
+                                        <option value="<?php echo $cat['categoryID']; ?>" <?php if ($category == $cat['categoryID']) echo 'selected'; ?>>
+                                            <?php echo htmlspecialchars($cat['categoryName']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+
+                                <select name="sortBy" class="form-select w-auto">
+                                    <option value="itemID" <?php if ($sortBy == 'itemID') echo 'selected'; ?>>Sort by ID</option>
+                                    <option value="itemName" <?php if ($sortBy == 'itemName') echo 'selected'; ?>>Sort by Name</option>
+                                    <option value="itemDateAdded" <?php if ($sortBy == 'itemDateAdded') echo 'selected'; ?>>Sort by Date Added</option>
+                                    <option value="itemQuantity" <?php if ($sortBy == 'itemQuantity') echo 'selected'; ?>>Sort by Stock Quantity</option>
+                                </select>
+
+                                <select name="sortOrder" class="form-select w-auto">
+                                    <option value="ASC" <?php if ($sortOrder == 'ASC') echo 'selected'; ?>>Ascending ↑</option>
+                                    <option value="DESC" <?php if ($sortOrder == 'DESC') echo 'selected'; ?>>Descending ↓</option>
+                                </select>
+
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                                <a href="inventory.php" class="btn btn-outline-secondary">Reset</a>
+                            </form>
+                            <hr>
+                            <div class="d-flex flex-wrap gap-3 align-items-center">
+                                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addItemModal">
+                                    + Add New Item
+                                </button>
                             </div>
-                        </h3>
+                        </div>
                         <div class="inventory card-body p-0">
-                            <table class="table table-striped table-hover">
+                            <table class="table table-striped table-hover mb-0">
                                 <thead class="table-secondary">
                                     <tr>
                                         <th>ID</th>
@@ -426,49 +449,59 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 </thead>
                                 <tbody>
                                     <?php
-                                    $stmt = $pdo->query(" SELECT tblItems.*, tblcategories.categoryName FROM  tblcategories INNER JOIN tblItems ON tblcategories.categoryID = tblItems.categoryID");
-                                    while ($row = $stmt->fetch()):
+                                    // FIXED: Loop through the $items array built by the search parameters at the top
+                                    if (empty($items)):
                                     ?>
-                                        <tr class="<?php
-                                                    if ($row['itemQuantity'] < 1) {
-                                                        echo 'table-danger';
-                                                    } elseif ($row['itemQuantity'] < 10) {
-                                                        echo 'table-warning';
-                                                    } elseif (strtotime($row['itemExpiryDate']) < strtotime('+3 days')) {
-                                                        echo 'table-danger';
-                                                    }
-                                                    ?>">
-                                            <td><?php echo htmlspecialchars($row['itemID']); ?></td>
-                                            <td><strong><?php echo htmlspecialchars($row['itemName']); ?></strong></td>
-                                            <td><?php echo htmlspecialchars($row['itemDescription']); ?></td>
-                                            <td>
-                                                <span class="badge bg-success-subtle text-success">
-                                                    <?php echo htmlspecialchars($row['categoryName']); ?>
-                                                </span>
-                                            </td>
-                                            <td>₱<?php echo number_format($row['itemPrice'], 2); ?></td>
-                                            <td><?php echo $row['itemQuantity']; ?></td>
-                                            <td><?php echo htmlspecialchars($row['itemUnit']); ?></td>
-                                            <td>
-                                                <small class="text-muted">
-                                                    <?php echo date('M d, Y', strtotime($row['itemDateAdded'])); ?>
-                                                </small>
-                                            </td>
-                                            <td>
-                                                <small class="text-muted">
-                                                    <?php echo date('M d, Y', strtotime($row['itemExpiryDate'])); ?>
-                                                </small>
-                                            </td>
-                                            <td class="row m-0">
-                                                <div class="col-md mb-1">
-                                                    <button class="w-100 btn btn-sm btn-primary" onclick='loadEditModal(<?php echo json_encode($row); ?>)'>Edit</button>
-                                                </div>
-                                                <div class="col-md">
-                                                    <button class="w-100 col btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteItemModal" onclick="setDeleteItemID(<?php echo $row['itemID']; ?>, '<?php echo htmlspecialchars($row['itemName']); ?>')">Delete</button>
-                                                </div>
-                                            </td>
+                                        <tr>
+                                            <td colspan="10" class="text-center py-4">No items found matching your search criteria.</td>
                                         </tr>
-                                    <?php endwhile; ?>
+                                        <?php
+                                    else:
+                                        foreach ($items as $row):
+                                        ?>
+                                            <tr class="<?php
+                                                        if ($row['itemQuantity'] < 1) {
+                                                            echo 'table-danger';
+                                                        } elseif ($row['itemQuantity'] < 10) {
+                                                            echo 'table-warning';
+                                                        } elseif (strtotime($row['itemExpiryDate']) < strtotime('+3 days')) {
+                                                            echo 'table-danger';
+                                                        }
+                                                        ?>">
+                                                <td><?php echo htmlspecialchars($row['itemID']); ?></td>
+                                                <td><strong><?php echo htmlspecialchars($row['itemName']); ?></strong></td>
+                                                <td><?php echo htmlspecialchars($row['itemDescription']); ?></td>
+                                                <td>
+                                                    <span class="badge bg-success-subtle text-success">
+                                                        <?php echo htmlspecialchars($row['categoryName']); ?>
+                                                    </span>
+                                                </td>
+                                                <td>₱<?php echo number_format($row['itemPrice'], 2); ?></td>
+                                                <td><?php echo $row['itemQuantity']; ?></td>
+                                                <td><?php echo htmlspecialchars($row['itemUnit']); ?></td>
+                                                <td>
+                                                    <small class="text-muted">
+                                                        <?php echo date('M d, Y', strtotime($row['itemDateAdded'])); ?>
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <small class="text-muted">
+                                                        <?php echo date('M d, Y', strtotime($row['itemExpiryDate'])); ?>
+                                                    </small>
+                                                </td>
+                                                <td class="row m-0">
+                                                    <div class="col-md mb-1">
+                                                        <button class="w-100 btn btn-sm btn-primary" onclick='loadEditModal(<?php echo json_encode($row); ?>)'>Edit</button>
+                                                    </div>
+                                                    <div class="col-md">
+                                                        <button class="w-100 col btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteItemModal" onclick="setDeleteItemID(<?php echo $row['itemID']; ?>, '<?php echo htmlspecialchars($row['itemName']); ?>')">Delete</button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                    <?php
+                                        endforeach;
+                                    endif;
+                                    ?>
                                 </tbody>
                             </table>
                         </div>

@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($result['success']) {
         // Redirect based on user role
-        if (isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true) {
+        if (isset($_SESSION['role']) && ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'staff')) {
             header('Location: dashboard.php');
         } else {
             header('Location: shop.php');

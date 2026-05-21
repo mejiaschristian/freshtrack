@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
                 ]);
             $orderID = $pdo->lastInsertId();
 
-            // Insert order items + deduct stock
+            // Insert order items + deduct stock + increment reorderLevel
             foreach ($cartItems as $item) {
                 $pdo->prepare("INSERT INTO tblOrderItems (orderID, itemID, quantity, price) VALUES (:orderID, :itemID, :quantity, :price)")
                     ->execute([
@@ -65,19 +65,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
                         'price'    => $item['itemPrice']
                     ]);
 
+                // Deduct stock
                 $pdo->prepare("UPDATE tblItems SET itemQuantity = itemQuantity - :qty WHERE itemID = :itemID")
                     ->execute(['qty' => $item['quantity'], 'itemID' => $item['itemID']]);
+
+                // Increment reorderLevel by 1
+                $pdo->prepare("UPDATE tblItems SET reorderLevel = reorderLevel + 1 WHERE itemID = :itemID")
+                    ->execute(['itemID' => $item['itemID']]);
             }
 
-            // Generate bill number
+            // Generate bill number with duplicate check
             $billDate  = date('Y-m-d');
             $dueDate   = date('Y-m-d', strtotime('+15 days'));
             $yearMonth = date('Y-m');
 
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM tblBills WHERE billNumber LIKE :prefix");
-            $stmt->execute(['prefix' => 'BILL-' . $yearMonth . '%']);
-            $count      = $stmt->fetchColumn() + 1;
-            $billNumber = 'BILL-' . $yearMonth . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+            $billNumber = '';
+            $attempt = 1;
+            do {
+                $stmt = $pdo->prepare("
+                    SELECT COALESCE(MAX(CAST(SUBSTRING(billNumber, -3) AS UNSIGNED)), 0) + :attempt as nextNum
+                    FROM tblBills 
+                    WHERE billNumber LIKE :prefix
+                ");
+                $stmt->execute(['prefix' => 'BILL-' . $yearMonth . '%', 'attempt' => $attempt]);
+                $nextNum    = $stmt->fetchColumn();
+                $billNumber = 'BILL-' . $yearMonth . '-' . str_pad($nextNum, 3, '0', STR_PAD_LEFT);
+
+                // Check if this bill number already exists
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM tblBills WHERE billNumber = :billNumber");
+                $stmt->execute(['billNumber' => $billNumber]);
+                $exists = $stmt->fetchColumn() > 0;
+
+                $attempt++;
+            } while ($exists && $attempt <= 100); // Safety limit
+
+            if ($exists) {
+                throw new Exception('Could not generate unique bill number');
+            }
 
             // Insert into tblBills
             $pdo->prepare("INSERT INTO tblBills (userID, billNumber, billDate, dueDate, totalAmount, status) VALUES (:userID, :billNumber, :billDate, :dueDate, :total, 'unpaid')")
@@ -168,27 +192,24 @@ if ($cart) {
                 </button>
 
                 <div class="collapse navbar-collapse" id="collapsibleNavId">
-                    <div class="mx-5 p-2 bg-white rounded-5 d-flex align-items-center justify-content-center text-center">
-                        <p class="mb-0"><b>Hotel Name:</b> <?php echo $_SESSION['username'] ?? 'Guest'; ?></p>
-                    </div>
                     <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link" href="shop.php">
+                            <a class="nav-link" href="shop.php" aria-current="page">
                                 Shop
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link active" href="cart.php" aria-current="page">Cart</a>
+                            <a class="nav-link active" href="cart.php">Cart</a>
                             <span class="visually-hidden">(current)</span>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="hotel_orders.php">Orders
-                            </a>
+                            <a class="nav-link" href="hotel_orders.php">Orders</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="bill.php">Transactions</a>
                         </li>
-                        <li class="nav-item dropdown">
+                        <li class="nav-item dropdown d-flex align-items-center mx-3">
+                            <img src="user-icon.svg" alt="user-icon" width="35">
                             <a
                                 class="nav-link dropdown-toggle"
                                 href="#"
@@ -196,7 +217,7 @@ if ($cart) {
                                 data-bs-toggle="dropdown"
                                 aria-haspopup="true"
                                 aria-expanded="false">
-                                More
+                                <?php echo $_SESSION['username'] ?? 'Guest'; ?>
                             </a>
                             <div class="dropdown-menu" aria-labelledby="dropdownId">
                                 <a class="dropdown-item btn btn-danger" href="index.php">Log Out</a>

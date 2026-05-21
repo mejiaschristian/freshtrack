@@ -12,6 +12,64 @@ $userID = $_SESSION['user_id'];
 $message = "";
 $messageType = "";
 
+// Handle cancel order
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cancel_order') {
+    $orderID = $_POST['orderID'] ?? null;
+
+    if ($orderID) {
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM tblOrders WHERE orderID = :orderID AND userID = :userID AND status = 'pending'");
+            $stmt->execute(['orderID' => $orderID, 'userID' => $userID]);
+            $order = $stmt->fetch();
+
+            if ($order) {
+                // Get order items to restore stock
+                $stmt = $pdo->prepare("SELECT * FROM tblOrderItems WHERE orderID = :orderID");
+                $stmt->execute(['orderID' => $orderID]);
+                $orderItems = $stmt->fetchAll();
+
+                // Restore stock
+                foreach ($orderItems as $item) {
+                    $pdo->prepare("UPDATE tblItems SET itemQuantity = itemQuantity + :qty WHERE itemID = :itemID")
+                        ->execute(['qty' => $item['quantity'], 'itemID' => $item['itemID']]);
+                }
+
+                // Get bill IDs before deleting
+                $stmt = $pdo->prepare("SELECT billID FROM tblBillOrders WHERE orderID = :orderID");
+                $stmt->execute(['orderID' => $orderID]);
+                $bills = $stmt->fetchAll();
+
+                // Delete tblBillOrders FIRST (child)
+                $pdo->prepare("DELETE FROM tblBillOrders WHERE orderID = :orderID")
+                    ->execute(['orderID' => $orderID]);
+
+                // Then delete tblBills (parent)
+                foreach ($bills as $bill) {
+                    $pdo->prepare("DELETE FROM tblBills WHERE billID = :billID")
+                        ->execute(['billID' => $bill['billID']]);
+                }
+
+                // Delete order items
+                $pdo->prepare("DELETE FROM tblOrderItems WHERE orderID = :orderID")
+                    ->execute(['orderID' => $orderID]);
+
+                // Delete the order
+                $pdo->prepare("DELETE FROM tblOrders WHERE orderID = :orderID")
+                    ->execute(['orderID' => $orderID]);
+
+                $message = "Order cancelled successfully!";
+                $messageType = "success";
+            } else {
+                $message = "Order not found or cannot be cancelled.";
+                $messageType = "warning";
+            }
+        } catch (PDOException $e) {
+            $message = "Error: " . $e->getMessage();
+            $messageType = "danger";
+        }
+    }
+}
+
 $billID = $_GET['billID'] ?? null;
 
 ?>
@@ -54,14 +112,11 @@ $billID = $_GET['billID'] ?? null;
                     aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="mx-5 p-2 bg-white rounded-5 d-flex align-items-center justify-content-center text-center">
-                    <p class="mb-0"><b>Hotel Name:</b> <?php echo $_SESSION['username'] ?? 'Guest'; ?></p>
-                </div>
 
                 <div class="collapse navbar-collapse" id="collapsibleNavId">
                     <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link" href="#" aria-current="page">
+                            <a class="nav-link" href="shop.php" aria-current="page">
                                 Shop
                             </a>
                         </li>
@@ -69,14 +124,14 @@ $billID = $_GET['billID'] ?? null;
                             <a class="nav-link" href="cart.php">Cart</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link active" href="hotel_orders.php">Orders
-                                <span class="visually-hidden">(current)</span>
-                            </a>
+                            <a class="nav-link active" href="hotel_orders.php">Orders</a>
+                            <span class="visually-hidden">(current)</span>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="bill.php">Transactions</a>
                         </li>
-                        <li class="nav-item dropdown">
+                        <li class="nav-item dropdown d-flex align-items-center mx-3">
+                            <img src="user-icon.svg" alt="user-icon" width="35">
                             <a
                                 class="nav-link dropdown-toggle"
                                 href="#"
@@ -84,7 +139,7 @@ $billID = $_GET['billID'] ?? null;
                                 data-bs-toggle="dropdown"
                                 aria-haspopup="true"
                                 aria-expanded="false">
-                                More
+                                <?php echo $_SESSION['username'] ?? 'Guest'; ?>
                             </a>
                             <div class="dropdown-menu" aria-labelledby="dropdownId">
                                 <a class="dropdown-item btn btn-danger" href="index.php">Log Out</a>
@@ -111,7 +166,7 @@ $billID = $_GET['billID'] ?? null;
                         <div class="col">
                             <p class="mb-1"><strong>Order #:</strong> <span id="modal_orderID"></span></p>
                             <p class="mb-1"><strong>Hotel:</strong> <span id="modal_orderHotel"></span></p>
-                            <p class="mb-1 badge bg-primary fs-6"><strong>For </strong><span id="modal_orderType"></span></p>
+                            <p class="mb-1 badge bg-primary fs-6">For <span id="modal_orderType"></span></p>
                         </div>
                         <div class="col text-end">
                             <p class="mb-1"><strong>Date:</strong> <span id="modal_orderDate"></span></p>
@@ -139,6 +194,11 @@ $billID = $_GET['billID'] ?? null;
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <form method="POST" action="hotel_orders.php" style="display:inline;">
+                        <input type="hidden" name="action" value="cancel_order">
+                        <input type="hidden" id="modal_cancelOrderID" name="orderID">
+                        <button type="submit" class="btn btn-danger" id="cancelOrderBtn" onclick="return confirm('Are you sure you want to cancel this order?');">Cancel Order</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -167,7 +227,7 @@ $billID = $_GET['billID'] ?? null;
                                 INNER JOIN tblusers ON tblOrders.userID = tblusers.userID
                                 WHERE tblOrders.userID = :userID AND
                                 (tblOrders.status = 'pending' OR tblOrders.status = '')
-                                ORDER BY tblOrders.orderDate DESC
+                                ORDER BY tblOrders.orderDate DESC LIMIT 3 
                             ");
                             $stmt->execute(['userID' => $_SESSION['user_id']]);
                             $pendingOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -177,11 +237,11 @@ $billID = $_GET['billID'] ?? null;
                                     echo '<div class="order-card card border-left-primary mb-3 position-relative">';
                                     echo '  <div class="card-body">';
                                     echo '    <h5 class="card-title">Order #' . htmlspecialchars($order['orderID']) . '</h5>';
-                                    echo '    <p class="card-text"><strong>Hotel:</strong> ' . htmlspecialchars($order['hotelName'] ?? 'N/A') . '</p>';
+                                    echo '    <p class="card-text"><strong>Hotel:</strong> ' . htmlspecialchars($order['hotelName']) . '</p>';
                                     echo '    <p class="card-text"><strong>Date:</strong> ' . date('M d, Y', strtotime($order['orderDate'])) . '</p>';
                                     echo '    <p class="card-text"><strong>Total:</strong> ₱' . number_format($order['totalAmount'], 2) . '</p>';
-                                    echo '    <p class="card-text"><span class="badge bg-warning text-dark">Pending</span></p>';
-                                    echo '    <button class="btn btn-primary" onclick="viewOrderDetails(' . $order['orderID'] . ')">View Details</button>';
+                                    echo '    <p class="card-text text-uppercase"><span class="badge bg-warning text-dark"> ' . htmlspecialchars($order['status'] ?? 'N/A') . '</span></p>';
+                                    echo '    <button class="btn btn-primary me-2" onclick="viewOrderDetails(' . $order['orderID'] . ')">View Details</button>';
                                     echo '  </div>';
                                     echo '</div>';
                                 }
@@ -204,8 +264,8 @@ $billID = $_GET['billID'] ?? null;
                                 INNER JOIN tblusers ON tblOrders.userID = tblusers.userID
                                 LEFT JOIN tblBillOrders ON tblOrders.orderID = tblBillOrders.orderID
                                 WHERE tblOrders.userID = :userID AND
-                                (tblOrders.status = 'billed' OR tblOrders.status = '')
-                                ORDER BY tblOrders.orderDate DESC
+                                (tblOrders.status = 'billed' OR tblOrders.status = 'paid')
+                                ORDER BY tblOrders.orderDate DESC LIMIT 3 
                             ");
                             $stmt->execute(['userID' => $_SESSION['user_id']]);
 
@@ -219,7 +279,7 @@ $billID = $_GET['billID'] ?? null;
                                     echo '    <p class="card-text"><strong>Hotel:</strong> ' . htmlspecialchars($order['hotelName'] ?? 'N/A') . '</p>';
                                     echo '    <p class="card-text"><strong>Date:</strong> ' . date('M d, Y', strtotime($order['orderDate'])) . '</p>';
                                     echo '    <p class="card-text"><strong>Total:</strong> ₱' . number_format($order['totalAmount'], 2) . '</p>';
-                                    echo '    <p class="card-text"><span class="badge bg-success">Billed</span></p>';
+                                    echo '    <p class="card-text text-uppercase"><span class="badge bg-success"> ' . htmlspecialchars($order['status'] ?? 'N/A') . '</span></p>';
                                     echo '    <button class="btn btn-primary me-2" onclick="viewOrderDetails(' . $order['orderID'] . ')">View Details</button>';
                                     if (!empty($order['billID'])) {
                                         echo '    <a href="bill.php?billID=' . htmlspecialchars($order['billID']) . '" class="btn btn-outline-success">View Bill</a>';

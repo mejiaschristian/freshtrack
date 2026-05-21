@@ -342,6 +342,11 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
+.bills-card {
+    height: 500px;
+    overflow: auto;
+}
+
 @media (max-width: 768px) {
     .background img {
         position: absolute;

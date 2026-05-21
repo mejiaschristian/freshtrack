@@ -7,7 +7,6 @@ function loadEditModal(item) {
     document.getElementById("edit_itemPrice").value = item.itemPrice;
     document.getElementById("edit_itemQuantity").value = item.itemQuantity;
     document.getElementById("edit_itemUnit").value = item.itemUnit;
-    document.getElementById("edit_itemDateAdded").value = item.itemDateAdded;
     document.getElementById("edit_itemExpiryDate").value = item.itemExpiryDate;
     document.getElementById("edit_existingImage").value = item.itemImage ?? ""; // preserve existing image
     document.getElementById("current_srp").value = 0;
@@ -78,19 +77,6 @@ function viewOrderDetails(orderID) {
                 order.orderID;
             document.getElementById("modal_orderHotel").textContent =
                 order.fullName;
-
-            // Format orderType (e.g., "pickup" -> "Pickup")
-            const typeDisplay = order.orderType
-                ? order.orderType.charAt(0).toUpperCase() +
-                  order.orderType.slice(1)
-                : "N/A";
-
-            // Check if element exists before setting (prevents crash if HTML is missing it)
-            const typeEl = document.getElementById("modal_orderType");
-            if (typeEl) {
-                typeEl.textContent = typeDisplay;
-            }
-
             document.getElementById("modal_orderDate").textContent = new Date(
                 order.orderDate,
             ).toLocaleDateString("en-PH", {
@@ -114,10 +100,8 @@ function viewOrderDetails(orderID) {
             document.getElementById("modal_orderStatus").innerHTML =
                 `<span class="badge bg-${color} text-dark">${order.status.toUpperCase()}</span>`;
 
-            // Null checks — these buttons don't exist on hotel page
+            // Show/hide complete order button (admin orders.php only)
             const completeBtn = document.getElementById("completeOrderBtn");
-            const viewBillBtn = document.getElementById("viewBillBtn");
-
             if (completeBtn) {
                 completeBtn.classList.toggle(
                     "d-none",
@@ -125,16 +109,27 @@ function viewOrderDetails(orderID) {
                 );
             }
 
-            if (viewBillBtn) {
-                if (order.status !== "pending" && data.billID) {
-                    viewBillBtn.classList.remove("d-none");
-                    viewBillBtn.onclick = () => viewBill(data.billID);
-                    viewBillBtn.href = "#";
+            // Show/hide cancel button based on status (hotel_orders.php only)
+            const cancelBtn = document.getElementById("cancelOrderBtn");
+            if (cancelBtn) {
+                const cancelOrderID = document.getElementById(
+                    "modal_cancelOrderID",
+                );
+                if (order.status === "pending") {
+                    cancelBtn.classList.remove("d-none");
+                    cancelOrderID.value = order.orderID;
                 } else {
-                    viewBillBtn.classList.add("d-none");
+                    cancelBtn.classList.add("d-none");
                 }
             }
 
+            // Show orderType badge only on hotel page
+            const orderTypeEl = document.getElementById("modal_orderType");
+            if (orderTypeEl) {
+                orderTypeEl.textContent = order.orderType || "N/A";
+            }
+
+            // Populate items
             const tbody = document.getElementById("modal_orderItems");
             tbody.innerHTML = "";
             items.forEach((item) => {
@@ -226,7 +221,7 @@ function processBillOrder() {
 }
 
 function viewBill(billID) {
-    currentBillID = billID; // track it
+    currentBillID = billID;
 
     fetch("get_bill_details.php?billID=" + billID)
         .then((res) => res.json())
@@ -257,7 +252,6 @@ function viewBill(billID) {
                 day: "numeric",
             });
 
-            // Status badge
             const statusColors = {
                 paid: "success",
                 partial: "warning text-dark",
@@ -267,16 +261,24 @@ function viewBill(billID) {
             document.getElementById("abill_status").innerHTML =
                 `<span class="badge bg-${color}">${bill.status.toUpperCase()}</span>`;
 
-            // Show/hide action buttons based on status
             const actionBtns = document.getElementById("abill_action_buttons");
+            const deleteBillBtn = document.getElementById("deleteBillBtn");
+            const markPartialBtn = document.getElementById("markPartialBtn");
+            const markPaidBtn = document.getElementById("markPaidBtn");
+
             if (bill.status === "paid") {
-                actionBtns.classList.add("d-none"); // already paid, hide buttons
-            } else {
                 actionBtns.classList.remove("d-none");
-                // Hide "Mark Partial" if already partial
-                document
-                    .getElementById("markPartialBtn")
-                    .classList.toggle("d-none", bill.status === "partial");
+                markPartialBtn.classList.add("d-none");
+                markPaidBtn.classList.add("d-none");
+                deleteBillBtn.classList.remove("d-none");
+            } else {
+                deleteBillBtn.classList.add("d-none");
+                markPartialBtn.classList.toggle(
+                    "d-none",
+                    bill.status === "partial",
+                );
+                markPaidBtn.classList.remove("d-none");
+                actionBtns.classList.remove("d-none");
             }
 
             // Items
@@ -362,6 +364,33 @@ function markBillStatus(status) {
                     },
                     { once: true },
                 );
+            } else {
+                alert("Error: " + (data.error || "Something went wrong"));
+            }
+        })
+        .catch((err) => console.error("Error:", err));
+}
+
+function deleteBill() {
+    if (!currentBillID) return;
+
+    if (
+        !confirm(
+            "Are you sure you want to delete this bill? This will also delete the associated order.",
+        )
+    )
+        return;
+
+    fetch("delete_bill.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `billID=${currentBillID}`,
+    })
+        .then((res) => res.json())
+        .then((data) => {
+            if (data.success) {
+                alert("Bill deleted successfully!");
+                location.reload();
             } else {
                 alert("Error: " + (data.error || "Something went wrong"));
             }

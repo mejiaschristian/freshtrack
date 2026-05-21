@@ -72,14 +72,10 @@ $successQty  = $_GET['success_qty'] ?? '';
                     aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="mx-5 p-2 bg-white rounded-5 d-flex align-items-center justify-content-center text-center">
-                    <p class="mb-0"><b>Hotel Name:</b> <?php echo $_SESSION['username'] ?? 'Guest'; ?></p>
-                </div>
-
                 <div class="collapse navbar-collapse" id="collapsibleNavId">
                     <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link active" href="#" aria-current="page">
+                            <a class="nav-link active" href="shop.php" aria-current="page">
                                 Shop
                                 <span class="visually-hidden">(current)</span>
                             </a>
@@ -93,7 +89,8 @@ $successQty  = $_GET['success_qty'] ?? '';
                         <li class="nav-item">
                             <a class="nav-link" href="bill.php">Transactions</a>
                         </li>
-                        <li class="nav-item dropdown">
+                        <li class="nav-item dropdown d-flex align-items-center mx-3">
+                            <img src="user-icon.svg" alt="user-icon" width="35">
                             <a
                                 class="nav-link dropdown-toggle"
                                 href="#"
@@ -101,7 +98,7 @@ $successQty  = $_GET['success_qty'] ?? '';
                                 data-bs-toggle="dropdown"
                                 aria-haspopup="true"
                                 aria-expanded="false">
-                                More
+                                <?php echo $_SESSION['username'] ?? 'Guest'; ?>
                             </a>
                             <div class="dropdown-menu" aria-labelledby="dropdownId">
                                 <a class="dropdown-item btn btn-danger" href="index.php">Log Out</a>

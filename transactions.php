@@ -106,8 +106,11 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <button type="button" class="btn btn-warning me-2" id="markPartialBtn" onclick="markBillStatus('partial')">
                             Mark as Partial
                         </button>
-                        <button type="button" class="btn btn-success" id="markPaidBtn" onclick="markBillStatus('paid')">
+                        <button type="button" class="btn btn-success me-2" id="markPaidBtn" onclick="markBillStatus('paid')">
                             Mark as Paid
+                        </button>
+                        <button type="button" class="btn btn-danger" id="deleteBillBtn" onclick="deleteBill()">
+                            Delete Bill
                         </button>
                     </div>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

@@ -85,19 +85,25 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <a class="navbar-brand me-auto" href="#">
                     <img src="fresh-track.png" alt="FreshTrack" class="img-fluid d-block w-auto z-1 mt-2 mx-5" />
                 </a>
-                <div class="mx-5 p-2 bg-white rounded-5 d-flex align-items-center justify-content-center text-center">
-                    <p class="mb-0"><b>Hotel Name:</b> <?php echo $_SESSION['username'] ?? 'Guest'; ?></p>
-                </div>
-                <div class="collapse navbar-collapse">
+                <div class="collapse navbar-collapse" id="collapsibleNavId">
                     <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
-                        <li class="nav-item"><a class="nav-link" href="shop.php">Shop</a></li>
-                        <li class="nav-item"><a class="nav-link" href="cart.php">Cart</a></li>
                         <li class="nav-item">
-                            <a class="nav-link" href="hotel_orders.php">Orders
+                            <a class="nav-link" href="shop.php" aria-current="page">
+                                Shop
                             </a>
                         </li>
-                        <li class="nav-item"><a class="nav-link active" href="bill.php">Transactions</a></li>
-                        <li class="nav-item dropdown">
+                        <li class="nav-item">
+                            <a class="nav-link" href="cart.php">Cart</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="hotel_orders.php">Orders</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="bill.php">Transactions</a>
+                            <span class="visually-hidden">(current)</span>
+                        </li>
+                        <li class="nav-item dropdown d-flex align-items-center mx-3">
+                            <img src="user-icon.svg" alt="user-icon" width="35">
                             <a
                                 class="nav-link dropdown-toggle"
                                 href="#"
@@ -105,7 +111,7 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 data-bs-toggle="dropdown"
                                 aria-haspopup="true"
                                 aria-expanded="false">
-                                More
+                                <?php echo $_SESSION['username'] ?? 'Guest'; ?>
                             </a>
                             <div class="dropdown-menu" aria-labelledby="dropdownId">
                                 <a class="dropdown-item btn btn-danger" href="index.php">Log Out</a>
@@ -242,7 +248,7 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
             <?php else: ?>
                 <div class="card">
-                    <div class="card-body p-0">
+                    <div class="bills-card card-body p-0">
                         <table class="table table-hover mb-0">
                             <thead class="table-secondary">
                                 <tr>
