@@ -106,11 +106,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <a href="register.php" class="btn btn-outline-login w-100 py-2 fw-5">
                             Create Account
                         </a>
-
-                        <!-- Footer Links -->
-                        <div class="text-center mt-4">
-                            <a href="#" class="text-muted text-decoration-none footer-link">Forgot password?</a>
-                        </div>
                     </div>
                 </div>
 
