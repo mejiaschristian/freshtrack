@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
             }
 
             // Generate bill number with duplicate check
-            $billDate  = date('Y-m-d');
+            $billDate  = date('Y-m-d H:i:s');  // includes time
             $dueDate   = date('Y-m-d', strtotime('+15 days'));
             $yearMonth = date('Y-m');
 
@@ -228,6 +228,43 @@ if ($cart) {
             </div>
         </nav>
     </header>
+
+    <!-- Checkout Confirmation Modal -->
+    <div class="modal fade" id="checkoutConfirmModal" tabindex="-1" aria-labelledby="checkoutConfirmLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="checkoutConfirmLabel">Confirm Checkout</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2"><strong>Order Summary:</strong></p>
+                    <div class="border-top border-bottom py-3 mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Items:</span>
+                            <span id="confirmItemCount">0</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal:</span>
+                            <span id="confirmTotal">₱0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between fw-bold">
+                            <span>Order Type:</span>
+                            <span id="confirmOrderType">Pickup</span>
+                        </div>
+                    </div>
+                    <p class="alert alert-info text-muted small mb-0">
+                        💡 You can track this order in the Orders section. A bill will be generated after checkout.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirmCheckoutBtn">Proceed to Checkout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <main>
         <div class="container-lg mt-5">
             <h2 class="mb-1">Your Cart</h2>
@@ -308,7 +345,7 @@ if ($cart) {
                                     <strong>₱<?php echo number_format($total, 2); ?></strong>
                                 </div>
 
-                                <form method="POST">
+                                <form method="POST" id="checkoutForm" data-item-count="<?php echo count($cartItems); ?>" data-total="<?php echo number_format($total, 2); ?>">
                                     <input type="hidden" name="action" value="checkout">
 
                                     <div class="mb-4">
@@ -327,7 +364,7 @@ if ($cart) {
                                         </div>
                                     </div>
 
-                                    <button type="submit" class="btn btn-success w-100">Checkout</button>
+                                    <button type="button" class="btn btn-success w-100" onclick="showCheckoutConfirm()">Checkout</button>
                                 </form>
                                 <a href="shop.php" class="btn btn-outline-secondary w-100 mt-2">Continue Shopping</a>
                             </div>

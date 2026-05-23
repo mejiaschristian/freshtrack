@@ -262,7 +262,6 @@ function viewBill(billID) {
                 `<span class="badge bg-${color}">${bill.status.toUpperCase()}</span>`;
 
             const actionBtns = document.getElementById("abill_action_buttons");
-            const deleteBillBtn = document.getElementById("deleteBillBtn");
             const markPartialBtn = document.getElementById("markPartialBtn");
             const markPaidBtn = document.getElementById("markPaidBtn");
 
@@ -270,9 +269,7 @@ function viewBill(billID) {
                 actionBtns.classList.remove("d-none");
                 markPartialBtn.classList.add("d-none");
                 markPaidBtn.classList.add("d-none");
-                deleteBillBtn.classList.remove("d-none");
             } else {
-                deleteBillBtn.classList.add("d-none");
                 markPartialBtn.classList.toggle(
                     "d-none",
                     bill.status === "partial",
@@ -371,33 +368,6 @@ function markBillStatus(status) {
         .catch((err) => console.error("Error:", err));
 }
 
-function deleteBill() {
-    if (!currentBillID) return;
-
-    if (
-        !confirm(
-            "Are you sure you want to delete this bill? This will also delete the associated order.",
-        )
-    )
-        return;
-
-    fetch("delete_bill.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `billID=${currentBillID}`,
-    })
-        .then((res) => res.json())
-        .then((data) => {
-            if (data.success) {
-                alert("Bill deleted successfully!");
-                location.reload();
-            } else {
-                alert("Error: " + (data.error || "Something went wrong"));
-            }
-        })
-        .catch((err) => console.error("Error:", err));
-}
-
 function showBillPreview(bill) {
     // Populate bill info
     document.getElementById("bill_billNumber").textContent = bill.billNumber;
@@ -456,6 +426,106 @@ if (successItem) {
     document.getElementById("cartToastMessage").textContent =
         successItem + " x" + successQty + " successfully added to cart!";
     new bootstrap.Toast(toastEl, { delay: 3000 }).show();
+}
+
+function showCheckoutConfirm() {
+    const form = document.getElementById("checkoutForm");
+    const itemCount = form.getAttribute("data-item-count");
+    const total = "₱" + form.getAttribute("data-total");
+    const orderType = document.querySelector(
+        'input[name="orderType"]:checked',
+    ).value;
+
+    // Populate modal
+    document.getElementById("confirmItemCount").textContent = itemCount;
+    document.getElementById("confirmTotal").textContent = total;
+    document.getElementById("confirmOrderType").textContent =
+        orderType.charAt(0).toUpperCase() + orderType.slice(1);
+
+    // Show modal
+    new bootstrap.Modal(document.getElementById("checkoutConfirmModal")).show();
+}
+
+// Handle confirm checkout button
+document
+    .getElementById("confirmCheckoutBtn")
+    .addEventListener("click", function () {
+        document.getElementById("checkoutForm").submit();
+    });
+
+function openEditUserModal(user) {
+    const modalEl = document.getElementById("editUserModal");
+    const currentUserID = parseInt(
+        modalEl.getAttribute("data-current-user-id"),
+    );
+    const isAdmin = modalEl.getAttribute("data-is-admin") === "1";
+
+    const isEditingSelf = user.userID == currentUserID;
+    const isAdminUser = user.role === "admin";
+
+    document.getElementById("editUserID").value = user.userID;
+    document.getElementById("editFullName").value = user.fullName;
+    document.getElementById("editEmail").value = user.email;
+    document.getElementById("editRole").value = user.role;
+
+    const roleSelect = document.getElementById("editRole");
+    const roleWarning = document.getElementById("roleWarning");
+    const updateBtn = document.getElementById("updateUserBtn");
+
+    // If editing self and self is admin, disable role change
+    if (isEditingSelf && isAdmin && isAdminUser) {
+        roleSelect.disabled = true;
+        roleWarning.style.display = "block";
+        updateBtn.disabled = true;
+        updateBtn.textContent = "Cannot Edit Own Role";
+    } else {
+        roleSelect.disabled = false;
+        roleWarning.style.display = "none";
+        updateBtn.disabled = false;
+        updateBtn.textContent = "Update User";
+    }
+
+    new bootstrap.Modal(modalEl).show();
+}
+
+function editUser(user) {
+    const modalEl = document.getElementById("editUserModal");
+    const currentUserID = parseInt(
+        modalEl.getAttribute("data-current-user-id"),
+    );
+    const isAdmin = modalEl.getAttribute("data-is-admin") === "1";
+
+    const isEditingSelf = user.userID == currentUserID;
+    const isAdminUser = user.role === "admin";
+
+    document.getElementById("editUserID").value = user.userID;
+    document.getElementById("editFullName").value = user.fullName;
+    document.getElementById("editEmail").value = user.email;
+    document.getElementById("editRole").value = user.role;
+
+    const roleSelect = document.getElementById("editRole");
+    const roleWarning = document.getElementById("roleWarning");
+    const updateBtn = document.getElementById("updateUserBtn");
+
+    // If editing self and self is admin, disable role change
+    if (isEditingSelf && isAdmin && isAdminUser) {
+        roleSelect.disabled = true;
+        roleWarning.style.display = "block";
+        updateBtn.disabled = true;
+        updateBtn.textContent = "Cannot Edit Own Role";
+    } else {
+        roleSelect.disabled = false;
+        roleWarning.style.display = "none";
+        updateBtn.disabled = false;
+        updateBtn.textContent = "Update User";
+    }
+}
+
+function deleteUser(userID) {
+    if (confirm("Are you sure you want to delete this user?")) {
+        document.getElementById("deleteUserID").value = userID;
+        document.getElementById("deleteForm").submit();
+    }
 }
 
 function calculateSRP() {

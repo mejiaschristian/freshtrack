@@ -60,8 +60,17 @@ if ($billID) {
     }
 }
 
-// All bills for this user
-$stmt = $pdo->prepare("SELECT * FROM tblBills WHERE userID = :userID ORDER BY billDate DESC");
+// All bills for this user (with non-pending orders)
+$stmt = $pdo->prepare("
+    SELECT DISTINCT tblBills.*
+    FROM tblBills
+    INNER JOIN tblBillOrders ON tblBills.billID = tblBillOrders.billID
+    INNER JOIN tblOrders ON tblBillOrders.orderID = tblOrders.orderID
+    WHERE tblBills.userID = :userID
+    AND tblBills.status IN ('paid', 'unpaid', 'partial')
+    AND tblOrders.status NOT IN ('pending')
+    ORDER BY tblBills.billDate DESC
+");
 $stmt->execute(['userID' => $userID]);
 $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>

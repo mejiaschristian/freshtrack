@@ -58,6 +58,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $email = $_POST['email'];
             $role = $_POST['role'];
 
+            // Prevent admin from changing their own role
+            if ($userID == $_SESSION['user_id'] && isset($_SESSION['is_admin']) && $_SESSION['is_admin'] && $role !== 'admin') {
+                $_SESSION['message'] = "You cannot change your own admin role.";
+                $_SESSION['message_type'] = "danger";
+                header('Location: users.php');
+                exit();
+            }
+
             if (!empty($userID) && !empty($fullName) && !empty($email)) {
                 $stmt = $pdo->prepare("UPDATE tblusers SET fullName = :fullName, email = :email, role = :role WHERE userID = :userID");
                 $stmt->execute([
@@ -260,8 +268,9 @@ $users = getAllUsers($pdo);
                         <div class="mb-3">
                             <label for="role" class="form-label">Role</label>
                             <select id="role" name="role" class="form-control" required>
-                                <option value="staff">Staff</option>
                                 <option value="admin">Admin</option>
+                                <option value="staff">Staff</option>
+                                <option value="hotel">Hotel</option>
                             </select>
                         </div>
                     </div>
@@ -275,7 +284,7 @@ $users = getAllUsers($pdo);
     </div>
 
     <!-- Edit User Modal -->
-    <div class="modal fade" id="editUserModal" tabindex="-1">
+    <div id="editUserModal" class="modal fade" tabindex="-1" data-current-user-id="<?php echo $_SESSION['user_id']; ?>" data-is-admin="<?php echo isset($_SESSION['is_admin']) && $_SESSION['is_admin'] ? '1' : '0'; ?>">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
@@ -300,14 +309,18 @@ $users = getAllUsers($pdo);
                         <div class="mb-3">
                             <label for="editRole" class="form-label">Role</label>
                             <select id="editRole" name="role" class="form-control" required>
-                                <option value="staff">Staff</option>
                                 <option value="admin">Admin</option>
+                                <option value="staff">Staff</option>
+                                <option value="hotel">Hotel</option>
                             </select>
+                            <small class="text-muted" id="roleWarning" style="display:none;">
+                                ⚠️ You cannot change your own role as admin
+                            </small>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-success">Update User</button>
+                        <button type="submit" class="btn btn-success" id="updateUserBtn">Update User</button>
                     </div>
                 </form>
             </div>
@@ -321,21 +334,7 @@ $users = getAllUsers($pdo);
     </form>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function editUser(user) {
-            document.getElementById('editUserID').value = user.userID;
-            document.getElementById('editFullName').value = user.fullName;
-            document.getElementById('editEmail').value = user.email;
-            document.getElementById('editRole').value = user.role;
-        }
-
-        function deleteUser(userID) {
-            if (confirm('Are you sure you want to delete this user?')) {
-                document.getElementById('deleteUserID').value = userID;
-                document.getElementById('deleteForm').submit();
-            }
-        }
-    </script>
+    <script src="script.js"></script>
 </body>
 
 </html>

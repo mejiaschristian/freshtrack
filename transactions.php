@@ -21,7 +21,11 @@ $messageType = "";
 $stmt = $pdo->prepare("
     SELECT tblBills.*, tblusers.fullName
     FROM tblBills
+    INNER JOIN tblBillOrders ON tblBills.billID = tblBillOrders.billID
+    INNER JOIN tblOrders ON tblBillOrders.orderID = tblOrders.orderID
     INNER JOIN tblusers ON tblBills.userID = tblusers.userID
+    WHERE (tblBills.status IN ('paid', 'unpaid', 'partial'))
+    AND tblOrders.status != 'pending'
     ORDER BY tblBills.billDate DESC
 ");
 $stmt->execute();
@@ -128,9 +132,6 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <button type="button" class="btn btn-success" id="markPaidBtn" onclick="markBillStatus('paid')">
                             Mark as Paid
                         </button>
-                        <button type="button" class="btn btn-danger" id="deleteBillBtn" onclick="deleteBill()">
-                            Delete Bill
-                        </button>
                     </div>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
@@ -173,40 +174,40 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </thead>
                     <tbody>
                         <?php if (!empty($allBills)): ?>
-                            <?php foreach ($allBills as $bill): ?>
-                                <tr class="<?php echo strtotime($bill['dueDate']) < strtotime('today') && $bill['status'] === 'unpaid' ? 'table-danger' : ''; ?>">
-                                    <td><?php echo htmlspecialchars($bill['billID']); ?></td>
-                                    <td><strong><?php echo htmlspecialchars($bill['billNumber']); ?></strong></td>
-                                    <td><?php echo htmlspecialchars($bill['fullName']); ?></td>
-                                    <td><?php echo date('M d, Y', strtotime($bill['billDate'])); ?></td>
+                            <?php foreach ($allBills as $b): ?>
+                                <tr class="<?php echo strtotime($b['dueDate']) < strtotime('today') && $b['status'] === 'unpaid' ? 'table-danger' : ''; ?>">
+                                    <td><?php echo htmlspecialchars($b['billID']); ?></td>
+                                    <td><strong><?php echo htmlspecialchars($b['billNumber']); ?></strong></td>
+                                    <td><?php echo htmlspecialchars($b['fullName']); ?></td>
+                                    <td><?php echo date('M d, Y', strtotime($b['billDate'])); ?></td>
                                     <td>
-                                        <span class="<?php echo strtotime($bill['dueDate']) < strtotime('today') && $bill['status'] !== 'paid' ? 'text-danger fw-bold' : ''; ?>">
-                                            <?php echo date('M d, Y', strtotime($bill['dueDate'])); ?>
+                                        <span class="<?php echo strtotime($b['dueDate']) < strtotime('today') && $b['status'] !== 'paid' ? 'text-danger fw-bold' : ''; ?>">
+                                            <?php echo date('M d, Y', strtotime($b['dueDate'])); ?>
                                         </span>
                                     </td>
-                                    <td>₱<?php echo number_format($bill['totalAmount'], 2); ?></td>
+                                    <td>₱<?php echo number_format($b['totalAmount'], 2); ?></td>
                                     <td>
-                                        <?php echo $bill['penaltyAmount'] > 0 ? '₱' . number_format($bill['penaltyAmount'], 2) : '—'; ?>
+                                        <?php echo $b['penaltyAmount'] > 0 ? '₱' . number_format($b['penaltyAmount'], 2) : '—'; ?>
                                     </td>
                                     <td>
                                         <span class="badge
                                         <?php
-                                        if ($bill['status'] === 'paid') {
+                                        if ($b['status'] === 'paid') {
                                             echo 'bg-success';
-                                        } elseif ($bill['status'] === 'partial') {
+                                        } elseif ($b['status'] === 'partial') {
                                             echo 'bg-warning text-dark';
                                         } else {
                                             echo 'bg-danger';
                                         }
                                         ?>">
-                                            <?php echo strtoupper($bill['status']); ?>
+                                            <?php echo strtoupper($b['status']); ?>
                                         </span>
-                                        <?php if (strtotime($bill['dueDate']) < strtotime('today') && $bill['status'] !== 'paid'): ?>
+                                        <?php if (strtotime($b['dueDate']) < strtotime('today') && $b['status'] !== 'paid'): ?>
                                             <br><small class="text-danger">OVERDUE</small>
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-primary" onclick="viewBill(<?php echo $bill['billID']; ?>)">View</button>
+                                        <button class="btn btn-sm btn-primary" onclick="viewBill(<?php echo $b['billID']; ?>)">View</button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -253,9 +254,9 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <?php
                         $totalRevenue = array_sum(
                             array_map(
-                                fn($bill) =>
-                                in_array($bill['status'], ['paid', 'partial'])
-                                    ? $bill['totalAmount']
+                                fn($b) =>
+                                in_array($b['status'], ['paid', 'partial'])
+                                    ? $b['totalAmount']
                                     : 0,
                                 $allBills
                             )
