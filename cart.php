@@ -174,7 +174,7 @@ if ($cart) {
     <header class="sticky-top">
         <nav class="navbar navbar-expand-sm navbar-dark bg-success">
             <div class="w-75 container-lg">
-                <a class="navbar-brand me-auto" href="#">
+                <a class="navbar-brand me-auto" href="shop.php">
                     <img
                         src="fresh-track.png"
                         alt="FreshTrack"
@@ -208,7 +208,7 @@ if ($cart) {
                         <li class="nav-item">
                             <a class="nav-link" href="bill.php">Transactions</a>
                         </li>
-                        <li class="nav-item dropdown d-flex align-items-center mx-3">
+                        <li class="border-start border-success-subtle ps-3 nav-item dropdown d-flex align-items-center mx-3">
                             <img src="user-icon.svg" alt="user-icon" width="35">
                             <a
                                 class="nav-link dropdown-toggle"
@@ -230,8 +230,8 @@ if ($cart) {
     </header>
     <main>
         <div class="container-lg mt-5">
-            <h2>Your Cart</h2>
-            <p>Review your items before checking out.</p>
+            <h2 class="mb-1">Your Cart</h2>
+            <p class="text-muted">Review your items before checking out.</p>
 
             <?php if ($message): ?>
                 <div class="alert alert-<?php echo $messageType; ?> alert-dismissible fade show" role="alert">

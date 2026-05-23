@@ -271,7 +271,8 @@ function getDashboardStats($pdo)
     }
 }
 
-function generateBillNumber($pdo, $date) {
+function generateBillNumber($pdo, $date)
+{
     $yearMonth = date('Y-m', strtotime($date));
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM tblBills WHERE billNumber LIKE :prefix");
     $stmt->execute(['prefix' => 'BILL-' . $yearMonth . '%']);
@@ -295,4 +296,80 @@ function getRecentOrders($pdo, $limit = 5)
     $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+
+
+//Functions of Data Analytics
+/**
+ * Orders per day for the last 7 days
+ */
+function getOrdersTrend($pdo)
+{
+    $sql = "SELECT DATE(orderDate) as day, COUNT(*) as orderCount, SUM(totalAmount) as revenue
+            FROM tblorders
+            WHERE orderDate >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+            GROUP BY DATE(orderDate)
+            ORDER BY day ASC";
+    $stmt = $pdo->query($sql);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Top 5 best-selling items by total quantity ordered
+ */
+function getTopSellingItems($pdo, $limit = 5)
+{
+    $sql = "SELECT i.itemName, SUM(oi.quantity) as totalQty, SUM(oi.quantity * oi.price) as totalRevenue
+            FROM tblorderitems oi
+            JOIN tblitems i ON i.itemID = oi.itemID
+            GROUP BY oi.itemID
+            ORDER BY totalQty DESC
+            LIMIT :limit";
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Order status breakdown
+ */
+function getOrderStatusBreakdown($pdo)
+{
+    $sql = "SELECT status, COUNT(*) as count, SUM(totalAmount) as total
+            FROM tblorders
+            GROUP BY status";
+    $stmt = $pdo->query($sql);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Expiring items with estimated waste value
+ */
+function getExpiringItemsWithValue($pdo, $days = 7)
+{
+    $sql = "SELECT itemName, itemQuantity, itemPrice, itemExpiryDate,
+                   (itemQuantity * itemPrice) as wasteValue
+            FROM tblitems
+            WHERE itemExpiryDate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL :days DAY)
+            ORDER BY itemExpiryDate ASC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindValue(':days', $days, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Revenue comparison: this week vs last week
+ */
+function getRevenueComparison($pdo)
+{
+    $sql = "SELECT
+                SUM(CASE WHEN orderDate >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) THEN totalAmount ELSE 0 END) as thisWeek,
+                SUM(CASE WHEN orderDate BETWEEN DATE_SUB(CURDATE(), INTERVAL 13 DAY) AND DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN totalAmount ELSE 0 END) as lastWeek
+            FROM tblorders
+            WHERE status IN ('paid','partial')";
+    $stmt = $pdo->query($sql);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }

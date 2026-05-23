@@ -82,7 +82,7 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <header class="sticky-top">
         <nav class="navbar navbar-expand-sm navbar-dark bg-success">
             <div class="w-75 container-lg">
-                <a class="navbar-brand me-auto" href="#">
+                <a class="navbar-brand me-auto" href="shop.php">
                     <img src="fresh-track.png" alt="FreshTrack" class="img-fluid d-block w-auto z-1 mt-2 mx-5" />
                 </a>
                 <div class="collapse navbar-collapse" id="collapsibleNavId">
@@ -102,7 +102,7 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <a class="nav-link active" href="bill.php">Transactions</a>
                             <span class="visually-hidden">(current)</span>
                         </li>
-                        <li class="nav-item dropdown d-flex align-items-center mx-3">
+                        <li class="border-start border-success-subtle ps-3 nav-item dropdown d-flex align-items-center mx-3">
                             <img src="user-icon.svg" alt="user-icon" width="35">
                             <a
                                 class="nav-link dropdown-toggle"
@@ -132,7 +132,7 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="card shadow">
                         <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                             <div>
-                                <h4 class="mb-0">🧾 Bill Receipt</h4>
+                                <h4 class="mb-0">Bill Receipt</h4>
                                 <small><?php echo htmlspecialchars($bill['billNumber']); ?></small>
                             </div>
                             <span class="badge fs-6 
@@ -238,8 +238,8 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         <?php else: ?>
             <!-- ===== ALL BILLS LIST ===== -->
-            <h2>My Bills</h2>
-            <p>View and track all your bills here.</p>
+            <h2 class="mb-1">My Bills</h2>
+            <p class="text-muted">View and track all your bills here.</p>
 
             <?php if (empty($allBills)): ?>
                 <div class="text-center py-5">

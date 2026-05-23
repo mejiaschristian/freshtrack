@@ -56,7 +56,7 @@ $successQty  = $_GET['success_qty'] ?? '';
     <header class="sticky-top">
         <nav class="navbar navbar-expand-sm navbar-dark bg-success">
             <div class="w-75 container-lg">
-                <a class="navbar-brand me-auto" href="#">
+                <a class="navbar-brand me-auto" href="shop.php">
                     <img
                         src="fresh-track.png"
                         alt="FreshTrack"
@@ -89,7 +89,7 @@ $successQty  = $_GET['success_qty'] ?? '';
                         <li class="nav-item">
                             <a class="nav-link" href="bill.php">Transactions</a>
                         </li>
-                        <li class="nav-item dropdown d-flex align-items-center mx-3">
+                        <li class="border-start border-success-subtle ps-3 nav-item dropdown d-flex align-items-center mx-3">
                             <img src="user-icon.svg" alt="user-icon" width="35">
                             <a
                                 class="nav-link dropdown-toggle"
@@ -163,18 +163,20 @@ $successQty  = $_GET['success_qty'] ?? '';
     <main>
         <!-- Toast -->
         <div class="toast-container position-fixed bottom-0 end-0 p-3">
-            <div id="cartToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="d-flex">
-                    <div class="toast-body" id="cartToastMessage">Item added to cart!</div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            <a href="cart.php" class="text-decoration-none">
+                <div id="cartToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body" id="cartToastMessage">Item added to cart!</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
 
         <div class="container-lg mt-5">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <div>
-                    <h2 class="mb-0">Welcome, <?php echo $_SESSION['username'] ?? 'Guest'; ?>!</h2>
+                    <h2 class="mb-1">Welcome, <?php echo $_SESSION['username'] ?? 'Guest'; ?>!</h2>
                     <p class="text-muted">Browse and purchase fresh items for your hotel!</p>
                 </div>
                 <span class="badge bg-success fs-6"><?php echo count($items); ?> items</span>
@@ -226,7 +228,7 @@ $successQty  = $_GET['success_qty'] ?? '';
                     <a href="shop.php" class="btn btn-success mt-3">Browse All Items</a>
                 </div>
             <?php else: ?>
-                <div class="row row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4">
+                <div class="items-row row row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4">
                     <?php foreach ($items as $row): ?>
                         <div class="col">
                             <div class="item-card card h-100 shadow-sm">

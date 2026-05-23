@@ -33,7 +33,7 @@ if (!isLoggedIn()) {
     <header class="sticky-top">
         <nav class="navbar navbar-expand-sm navbar-dark bg-success">
             <div class="container-fluid w-75">
-                <a class="navbar-brand me-auto" href="#">
+                <a class="navbar-brand me-auto" href="dashboard.php">
                     <img
                         src="fresh-track.png"
                         alt="FreshTrack"
@@ -69,8 +69,20 @@ if (!isLoggedIn()) {
                                 <a class="nav-link" href="users.php">Users</a>
                             </li>
                         <?php endif; ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="logout.php">Logout</a>
+                        <li class="border-start border-success-subtle ps-3 nav-item dropdown d-flex align-items-center mx-3">
+                            <img src="user-icon.svg" alt="user-icon" width="35">
+                            <a
+                                class="nav-link dropdown-toggle"
+                                href="#"
+                                id="dropdownId"
+                                data-bs-toggle="dropdown"
+                                aria-haspopup="true"
+                                aria-expanded="false">
+                                <?php echo $_SESSION['username'] ?? 'Guest'; ?>
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="dropdownId">
+                                <a class="dropdown-item btn btn-danger" href="index.php">Log Out</a>
+                            </div>
                         </li>
                     </ul>
                 </div>
@@ -134,7 +146,7 @@ if (!isLoggedIn()) {
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">🧾 Bill Receipt</h5>
+                    <h5 class="modal-title">Bill Receipt</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -202,8 +214,8 @@ if (!isLoggedIn()) {
     </div>
     <main>
         <div class="container-fluid mt-5 w-75">
-            <h2>Orders</h2>
-            <p>Manage your orders here.</p>
+            <h2 class="mb-1">Orders</h2>
+            <p class="text-muted">Manage your orders here.</p>
             <div class="orders mt-5 row">
 
                 <!-- Pending Orders -->
@@ -213,12 +225,12 @@ if (!isLoggedIn()) {
                         <div class="cards-cont card-body">
                             <?php
                             $stmt = $pdo->prepare("
-                        SELECT tblOrders.*, tblusers.fullName AS hotelName
-                        FROM tblOrders
-                        INNER JOIN tblusers ON tblOrders.userID = tblusers.userID
-                        WHERE tblOrders.status = 'pending' OR tblOrders.status = ''
-                        ORDER BY tblOrders.orderDate DESC
-                    ");
+                                SELECT tblOrders.*, tblusers.fullName AS hotelName
+                                FROM tblOrders
+                                INNER JOIN tblusers ON tblOrders.userID = tblusers.userID
+                                WHERE tblOrders.status = 'pending' OR tblOrders.status = ''
+                                ORDER BY tblOrders.orderDate DESC
+                            ");
                             $stmt->execute();
                             $pendingOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -250,12 +262,12 @@ if (!isLoggedIn()) {
                         <div class="cards-cont card-body">
                             <?php
                             $stmt = $pdo->prepare("
-                        SELECT tblOrders.*, tblusers.fullName AS hotelName
-                        FROM tblOrders
-                        INNER JOIN tblusers ON tblOrders.userID = tblusers.userID
-                        WHERE tblOrders.status = 'billed'
-                        ORDER BY tblOrders.orderDate DESC
-                    ");
+                                SELECT tblOrders.*, tblusers.fullName AS hotelName
+                                FROM tblOrders
+                                INNER JOIN tblusers ON tblOrders.userID = tblusers.userID
+                                WHERE (tblOrders.status = 'billed' OR tblOrders.status = 'paid')
+                                ORDER BY tblOrders.orderDate DESC
+                            ");
                             $stmt->execute();
                             $completedOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

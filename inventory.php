@@ -195,7 +195,7 @@ $categories = $catStmt->fetchAll(PDO::FETCH_ASSOC);
     <header class="sticky-top">
         <nav class="navbar navbar-expand-sm navbar-dark bg-success">
             <div class="container-fluid w-75 ">
-                <a class="navbar-brand me-auto" href="#">
+                <a class="navbar-brand me-auto" href="dashboard.php">
                     <img
                         src="fresh-track.png"
                         alt="FreshTrack"
@@ -231,8 +231,20 @@ $categories = $catStmt->fetchAll(PDO::FETCH_ASSOC);
                                 <a class="nav-link" href="users.php">Users</a>
                             </li>
                         <?php endif; ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="logout.php">Logout</a>
+                        <li class="border-start border-success-subtle ps-3 nav-item dropdown d-flex align-items-center mx-3">
+                            <img src="user-icon.svg" alt="user-icon" width="35">
+                            <a
+                                class="nav-link dropdown-toggle"
+                                href="#"
+                                id="dropdownId"
+                                data-bs-toggle="dropdown"
+                                aria-haspopup="true"
+                                aria-expanded="false">
+                                <?php echo $_SESSION['username'] ?? 'Guest'; ?>
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="dropdownId">
+                                <a class="dropdown-item btn btn-danger" href="index.php">Log Out</a>
+                            </div>
                         </li>
                     </ul>
                 </div>
@@ -391,9 +403,9 @@ $categories = $catStmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
             </div>
 
-            <div class="container-lg mt-5">
-                <h2>Inventory</h2>
-                <p>Manage your inventory here.</p>
+            <div class="container-fluid mt-5">
+                <h2 class="mb-1">Inventory</h2>
+                <p class="text-muted">Manage your inventory here.</p>
                 <div class="mt-5">
                     <div class="card mb-4">
                         <div class="card-header bg-success-subtle">

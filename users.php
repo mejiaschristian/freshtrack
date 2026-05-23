@@ -126,7 +126,21 @@ $users = getAllUsers($pdo);
                         <li class="nav-item"><a class="nav-link" href="orders.php">Orders</a></li>
                         <li class="nav-item"><a class="nav-link" href="transactions.php">Transactions</a></li>
                         <li class="nav-item"><a class="nav-link active" href="users.php">Users</a></li>
-                        <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
+                        <li class="border-start border-success-subtle ps-3 nav-item dropdown d-flex align-items-center mx-3">
+                            <img src="user-icon.svg" alt="user-icon" width="35">
+                            <a
+                                class="nav-link dropdown-toggle"
+                                href="#"
+                                id="dropdownId"
+                                data-bs-toggle="dropdown"
+                                aria-haspopup="true"
+                                aria-expanded="false">
+                                <?php echo $_SESSION['username'] ?? 'Guest'; ?>
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="dropdownId">
+                                <a class="dropdown-item btn btn-danger" href="index.php">Log Out</a>
+                            </div>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -136,7 +150,7 @@ $users = getAllUsers($pdo);
     <main class="container-fluid mt-5 w-75">
         <div class="row mb-4">
             <div class="col">
-                <h1 class="mb-0">User Management</h1>
+                <h2 class="mb-0">User Management</h2>
                 <p class="text-muted">Manage system users and permissions</p>
             </div>
         </div>

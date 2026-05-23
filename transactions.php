@@ -3,6 +3,11 @@ session_start();
 require_once 'auth.php';
 require_once 'db.php';
 
+// DEBUG: Check if get_bill_details.php exists
+if (!file_exists('get_bill_details.php')) {
+    echo "<!-- WARNING: get_bill_details.php NOT FOUND in " . getcwd() . " -->";
+}
+
 // Check if user is logged in
 if (!isLoggedIn()) {
     header('Location: index.php');
@@ -56,7 +61,21 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <a class="nav-link" href="users.php">Users</a>
                             </li>
                         <?php endif; ?>
-                        <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
+                        <li class="border-start border-success-subtle ps-3 nav-item dropdown d-flex align-items-center mx-3">
+                            <img src="user-icon.svg" alt="user-icon" width="35">
+                            <a
+                                class="nav-link dropdown-toggle"
+                                href="#"
+                                id="dropdownId"
+                                data-bs-toggle="dropdown"
+                                aria-haspopup="true"
+                                aria-expanded="false">
+                                <?php echo $_SESSION['username'] ?? 'Guest'; ?>
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="dropdownId">
+                                <a class="dropdown-item btn btn-danger" href="index.php">Log Out</a>
+                            </div>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -68,7 +87,7 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">🧾 Bill Receipt</h5>
+                    <h5 class="modal-title">Bill Receipt</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -106,7 +125,7 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <button type="button" class="btn btn-warning me-2" id="markPartialBtn" onclick="markBillStatus('partial')">
                             Mark as Partial
                         </button>
-                        <button type="button" class="btn btn-success me-2" id="markPaidBtn" onclick="markBillStatus('paid')">
+                        <button type="button" class="btn btn-success" id="markPaidBtn" onclick="markBillStatus('paid')">
                             Mark as Paid
                         </button>
                         <button type="button" class="btn btn-danger" id="deleteBillBtn" onclick="deleteBill()">
@@ -120,12 +139,8 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 
     <main class="container-fluid mt-5 w-75">
-        <div class="row mb-4">
-            <div class="col">
-                <h2 class="mb-0">Bills & Transactions</h2>
-                <p class="text-muted">View all customer bills and transactions</p>
-            </div>
-        </div>
+        <h2 class="mb-1">Bills & Transactions</h2>
+        <p class="text-muted">View all customer bills and transactions</p>
 
         <!-- Message Alert -->
         <?php if ($message): ?>
@@ -136,7 +151,7 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <?php endif; ?>
 
         <!-- Bills Table -->
-        <div class="card">
+        <div class="card mt-2">
             <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">All Bills</h5>
                 <span class="badge bg-light text-success"><?php echo count($allBills); ?> Bills</span>
@@ -145,6 +160,7 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
+                            <th>Bill ID</th>
                             <th>Bill Number</th>
                             <th>Customer</th>
                             <th>Bill Date</th>
@@ -159,6 +175,7 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <?php if (!empty($allBills)): ?>
                             <?php foreach ($allBills as $bill): ?>
                                 <tr class="<?php echo strtotime($bill['dueDate']) < strtotime('today') && $bill['status'] === 'unpaid' ? 'table-danger' : ''; ?>">
+                                    <td><?php echo htmlspecialchars($bill['billID']); ?></td>
                                     <td><strong><?php echo htmlspecialchars($bill['billNumber']); ?></strong></td>
                                     <td><?php echo htmlspecialchars($bill['fullName']); ?></td>
                                     <td><?php echo date('M d, Y', strtotime($bill['billDate'])); ?></td>
@@ -233,7 +250,21 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <div class="card text-center">
                     <div class="card-body">
                         <h6 class="card-title text-muted">Total Revenue</h6>
-                        <h3 class="text-primary">₱<?php echo number_format(array_sum(array_column($allBills, 'totalAmount')), 2); ?></h3>
+                        <?php
+                        $totalRevenue = array_sum(
+                            array_map(
+                                fn($bill) =>
+                                in_array($bill['status'], ['paid', 'partial'])
+                                    ? $bill['totalAmount']
+                                    : 0,
+                                $allBills
+                            )
+                        );
+                        ?>
+
+                        <h3 class="text-primary">
+                            ₱<?php echo number_format($totalRevenue, 2); ?>
+                        </h3>
                     </div>
                 </div>
             </div>

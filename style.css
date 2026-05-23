@@ -22,7 +22,7 @@
 /* Login Page Styles */
 .login-body {
     min-height: 100vh;
-    background: linear-gradient(135deg, #f0fdf4 0%, #f3f4f6 100%);
+    background: #dbdbdb;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -342,10 +342,11 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.bills-card {
-    height: 500px;
+.bills-card, .items-row.row {
+    height: 550px;
     overflow: auto;
 }
+
 
 @media (max-width: 768px) {
     .background img {

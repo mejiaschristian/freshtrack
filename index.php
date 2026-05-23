@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <img
                                 src="fresh-track.png"
                                 alt="FreshTrack Logo"
-                                class="login-logo mb-3" />
+                                class="login-logo" />
                             <h1 class="login-title">Welcome Back!</h1>
                             <p class="login-subtitle">Sign in to continue to FreshTrack</p>
                         </div>
