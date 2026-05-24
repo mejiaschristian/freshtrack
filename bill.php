@@ -94,6 +94,16 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <a class="navbar-brand me-auto" href="shop.php">
                     <img src="fresh-track.png" alt="FreshTrack" class="img-fluid d-block w-auto z-1 mt-2 mx-5" />
                 </a>
+                <button
+                    class="navbar-toggler p-4"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapsibleNavId"
+                    aria-controls="collapsibleNavId"
+                    aria-expanded="false"
+                    aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
                 <div class="collapse navbar-collapse" id="collapsibleNavId">
                     <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
                         <li class="nav-item">

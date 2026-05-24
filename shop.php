@@ -228,45 +228,47 @@ $successQty  = $_GET['success_qty'] ?? '';
                     <a href="shop.php" class="btn btn-success mt-3">Browse All Items</a>
                 </div>
             <?php else: ?>
-                <div class="items-row row row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4">
+                <div class="items-row row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-2 g-md-3 g-lg-3 align-items-center justify-content-center">
                     <?php foreach ($items as $row): ?>
                         <div class="col">
-                            <div class="item-card card h-100 shadow-sm">
+                            <div class="item-card card w-75 h-100 shadow-sm">
                                 <?php if (!empty($row['itemImage'])): ?>
                                     <img src="<?php echo htmlspecialchars($row['itemImage']); ?>"
                                         class="card-img-top"
                                         alt="<?php echo htmlspecialchars($row['itemName']); ?>"
-                                        style="height: 180px; object-fit: cover;">
+                                        style="height: 100px; object-fit: cover;">
                                 <?php else: ?>
-                                    <div class="bg-light d-flex align-items-center justify-content-center" style="height:180px;">
+                                    <div class="bg-light d-flex align-items-center justify-content-center" style="height:100px;">
                                         <span class="text-muted small">No image</span>
                                     </div>
                                 <?php endif; ?>
 
-                                <div class="card-body d-flex flex-column">
-                                    <span class="badge bg-success-subtle text-success mb-2 align-self-start">
+                                <div class="card-body d-flex flex-column p-2">
+                                    <span class="badge bg-success-subtle text-success mb-1 align-self-start small">
                                         <?php echo htmlspecialchars($row['categoryName']); ?>
                                     </span>
-                                    <h6 class="card-title"><?php echo htmlspecialchars($row['itemName']); ?></h6>
-                                    <p class="card-text text-muted small"><?php echo htmlspecialchars($row['itemDescription']); ?></p>
+                                    <h6 class="card-title small mb-1"><?php echo htmlspecialchars($row['itemName']); ?></h6>
+                                    <p class="card-text text-muted small mb-2" style="font-size: 0.75rem;">
+                                        <?php echo htmlspecialchars(substr($row['itemDescription'], 0, 40)); ?>...
+                                    </p>
                                     <div class="mt-auto">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <strong class="text-success fs-5">₱<?php echo number_format($row['itemPrice'], 2); ?></strong>
-                                            <small class="text-muted">per <?php echo htmlspecialchars($row['itemUnit']); ?></small>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <strong class="text-success small">₱<?php echo number_format($row['itemPrice'], 2); ?></strong>
+                                            <small class="text-muted" style="font-size: 0.7rem;">per <?php echo htmlspecialchars($row['itemUnit']); ?></small>
                                         </div>
                                         <small class="text-muted badge bg-danger-subtle"><?php echo $row['reorderLevel']; ?> items sold</small><br>
                                         <small class="text-muted">Stock: <?php echo $row['itemQuantity']; ?> <?php echo htmlspecialchars($row['itemUnit']); ?></small>
                                     </div>
                                 </div>
 
-                                <div class="card-footer bg-white border-0 p-2">
+                                <div class="card-footer bg-white border-0 p-1">
                                     <?php if ($row['itemQuantity'] > 0): ?>
-                                        <button class="btn btn-success w-100"
+                                        <button class="btn btn-success btn-sm w-100"
                                             onclick='openCartModal(<?php echo json_encode($row); ?>)'>
                                             Add to Cart
                                         </button>
                                     <?php else: ?>
-                                        <button class="btn btn-secondary w-100" disabled>Out of Stock</button>
+                                        <button class="btn btn-secondary btn-sm w-100" disabled>Out of Stock</button>
                                     <?php endif; ?>
                                 </div>
                             </div>

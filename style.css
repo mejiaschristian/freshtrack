@@ -342,11 +342,11 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.bills-card, .items-row.row {
-    height: 550px;
+.bills-card,
+.items-row.row {
+    height: 60%;
     overflow: auto;
 }
-
 
 @media (max-width: 768px) {
     .background img {
