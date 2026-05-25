@@ -142,7 +142,7 @@ if (!isLoggedIn()) {
                                 <div class="card-body">
                                     <h5 class="card-title text-success">Order Tracking</h5>
                                     <p class="card-text text-muted small">
-                                        Monitor all your orders in real-time and track payment status.
+                                        Monitor all your orders in real-time and view order details.
                                     </p>
                                 </div>
                             </div>
@@ -150,9 +150,9 @@ if (!isLoggedIn()) {
                         <div class="col-md-6">
                             <div class="card about-card h-100 shadow-sm">
                                 <div class="card-body">
-                                    <h5 class="card-title text-success">Flexible Billing</h5>
+                                    <h5 class="card-title text-success">Bill Management</h5>
                                     <p class="card-text text-muted small">
-                                        Support for full and partial payments with automated penalty tracking.
+                                        View and track your bills with due dates and payment status.
                                     </p>
                                 </div>
                             </div>
@@ -172,7 +172,8 @@ if (!isLoggedIn()) {
                                 <li class="mb-3"><strong>Select</strong> - Add items to your cart with your desired quantity</li>
                                 <li class="mb-3"><strong>Checkout</strong> - Choose delivery or pickup and confirm your order</li>
                                 <li class="mb-3"><strong>Track</strong> - Monitor your order status and upcoming deliveries</li>
-                                <li><strong>Pay</strong> - Complete payment through our flexible billing system</li>
+                                <li class="mb-3"><strong>Receive Bill</strong> - A bill will be generated and sent to you</li>
+                                <li><strong>Pay</strong> - Contact us to arrange payment via bank transfer, check, or cash</li>
                             </ol>
                         </div>
                     </div>
