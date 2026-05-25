@@ -32,6 +32,7 @@ $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $successItem = $_GET['success_item'] ?? '';
 $successQty  = $_GET['success_qty'] ?? '';
+$errorMsg    = $_GET['error'] ?? '';
 ?>
 
 <!doctype html>
@@ -174,6 +175,30 @@ $successQty  = $_GET['success_qty'] ?? '';
                 </div>
             </a>
         </div>
+
+        <!-- In your HTML, after the toast section, add: -->
+        <?php if (!empty($errorMsg)): ?>
+            <div class="toast-container position-fixed bottom-0 end-0 p-3">
+                <div class="toast align-items-center text-bg-danger border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            ⚠️ <?php echo htmlspecialchars($errorMsg); ?>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const errorToast = document.querySelector('.text-bg-danger');
+                    if (errorToast) {
+                        new bootstrap.Toast(errorToast, {
+                            delay: 5000
+                        }).show();
+                    }
+                });
+            </script>
+        <?php endif; ?>
 
         <div class="container-lg mt-5">
             <div class="d-flex justify-content-between align-items-center mb-2">
