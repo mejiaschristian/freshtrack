@@ -228,6 +228,15 @@
     border: 1px solid #fecaca;
 }
 
+.navbar-brand img {
+    max-height: 50px;
+    width: auto;
+}
+
+.about-card {
+    border-left: 4px solid #198754;
+}
+
 /* Responsive Design */
 @media (max-width: 992px) {
     .login-card-wrapper {
@@ -348,6 +357,11 @@
     overflow: auto;
 }
 
+.item-card .card-img-top {
+    height: 140px;
+    object-fit: cover;
+}
+
 @media (max-width: 768px) {
     .background img {
         position: absolute;
@@ -356,5 +370,8 @@
         width: 100%;
         height: 100%;
         z-index: -1;
+    }
+    .nav-ui {
+        width: 100%;
     }
 }

@@ -54,16 +54,13 @@ $successQty  = $_GET['success_qty'] ?? '';
 
 <body>
     <header class="sticky-top">
-        <nav class="navbar navbar-expand-sm navbar-dark bg-success">
-            <div class="w-75 container-lg">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+            <div class="container-lg">
                 <a class="navbar-brand me-auto" href="shop.php">
-                    <img
-                        src="fresh-track.png"
-                        alt="FreshTrack"
-                        class="img-fluid d-block w-auto z-1 mt-2 mx-5" />
+                    <img src="fresh-track.png" alt="FreshTrack" class="img-fluid" />
                 </a>
                 <button
-                    class="navbar-toggler p-4"
+                    class="navbar-toggler"
                     type="button"
                     data-bs-toggle="collapse"
                     data-bs-target="#collapsibleNavId"
@@ -72,13 +69,12 @@ $successQty  = $_GET['success_qty'] ?? '';
                     aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
+
                 <div class="collapse navbar-collapse" id="collapsibleNavId">
                     <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link active" href="shop.php" aria-current="page">
-                                Shop
-                                <span class="visually-hidden">(current)</span>
-                            </a>
+                            <a class="nav-link active" href="shop.php">Shop</a>
+                            <span class="visually-hidden">(current)</span>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="cart.php">Cart</a>
@@ -89,19 +85,24 @@ $successQty  = $_GET['success_qty'] ?? '';
                         <li class="nav-item">
                             <a class="nav-link" href="bill.php">Transactions</a>
                         </li>
-                        <li class="border-start border-success-subtle ps-3 nav-item dropdown d-flex align-items-center mx-3">
-                            <img src="user-icon.svg" alt="user-icon" width="35">
+                        <li class="nav-item">
+                            <a class="nav-link" href="about.php">About</a>
+                        </li>
+                        <li class="nav-item dropdown">
                             <a
-                                class="nav-link dropdown-toggle"
+                                class="nav-link dropdown-toggle d-flex align-items-center gap-2 border-start border-1 ms-3 px-3"
                                 href="#"
                                 id="dropdownId"
                                 data-bs-toggle="dropdown"
                                 aria-haspopup="true"
                                 aria-expanded="false">
-                                <?php echo $_SESSION['username'] ?? 'Guest'; ?>
+                                <img src="user-icon.svg" alt="user-icon" width="35">
+                                <span><?php echo $_SESSION['username'] ?? 'Guest'; ?></span>
                             </a>
-                            <div class="dropdown-menu" aria-labelledby="dropdownId">
-                                <a class="dropdown-item btn btn-danger" href="index.php">Log Out</a>
+                            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownId">
+                                <a class="dropdown-item" href="index.php">
+                                    <i class="bi bi-box-arrow-right"></i> Log Out
+                                </a>
                             </div>
                         </li>
                     </ul>
@@ -109,6 +110,7 @@ $successQty  = $_GET['success_qty'] ?? '';
             </div>
         </nav>
     </header>
+
     <!-- Add to Cart Modal -->
     <div class="modal fade" id="addToCartModal" tabindex="-1" aria-labelledby="addToCartLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -235,8 +237,7 @@ $successQty  = $_GET['success_qty'] ?? '';
                                 <?php if (!empty($row['itemImage'])): ?>
                                     <img src="<?php echo htmlspecialchars($row['itemImage']); ?>"
                                         class="card-img-top"
-                                        alt="<?php echo htmlspecialchars($row['itemName']); ?>"
-                                        style="height: 100px; object-fit: cover;">
+                                        alt="<?php echo htmlspecialchars($row['itemName']); ?>">
                                 <?php else: ?>
                                     <div class="bg-light d-flex align-items-center justify-content-center" style="height:100px;">
                                         <span class="text-muted small">No image</span>
