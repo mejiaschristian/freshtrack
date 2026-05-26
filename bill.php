@@ -117,6 +117,9 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <a class="nav-link" href="hotel_orders.php">Orders</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="recurring_orders.php">Recurring</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link active" href="bill.php">Transactions</a>
                             <span class="visually-hidden">(current)</span>
                         </li>
@@ -245,8 +248,13 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </div>
 
                             <?php if ($bill['status'] !== 'paid'): ?>
-                                <div class="alert alert-info mt-3">
-                                    💡 You may pay this bill in full or request partial payment. Contact FreshTrack to process your payment.
+                                <div class="d-flex row container align-items-center justify-content-center">
+                                    <div class="col-md-12 col-lg-6 alert alert-info mt-3">
+                                        💡 You may pay this bill in full or request partial payment. Contact <b>+639176771234</b> for card payment or scan the QR Code process your payment. <br>
+                                    </div>
+                                    <div class="col-md-12 col-lg-6 img-container">
+                                        <img class="qr-img" src="qr_payment.JPG" alt="QR Code Payment">
+                                    </div>
                                 </div>
                             <?php endif; ?>
                         </div>

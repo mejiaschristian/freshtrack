@@ -362,6 +362,10 @@
     object-fit: cover;
 }
 
+.qr-img {
+    width: 130px;
+}
+
 @media (max-width: 768px) {
     .background img {
         position: absolute;

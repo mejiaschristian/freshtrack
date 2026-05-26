@@ -57,6 +57,9 @@ if (!isLoggedIn()) {
                             <a class="nav-link" href="hotel_orders.php">Orders</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="recurring_orders.php">Recurring</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="bill.php">Transactions</a>
                         </li>
                         <li class="nav-item">

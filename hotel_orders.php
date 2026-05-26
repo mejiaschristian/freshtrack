@@ -2,7 +2,8 @@
 session_start();
 require_once 'auth.php';
 require_once 'db.php';
-
+// Include the automation script logic to process operations seamlessly
+require_once 'cron_process_recurring.php';
 if (!isLoggedIn()) {
     header('Location: index.php');
     exit();
@@ -11,6 +12,9 @@ if (!isLoggedIn()) {
 $userID = $_SESSION['user_id'];
 $message = "";
 $messageType = "";
+// AUTOMATIC TRIGGER RUNTIME ENGINE CHECKER
+// Every time a page loads, this parses background subscriptions to ensure everything is up to date
+processAutomaticRecurringBatches($pdo);
 
 // Handle cancel order
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cancel_order') {
@@ -70,8 +74,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cance
     }
 }
 
-$billID = $_GET['billID'] ?? null;
+// Handle AJAX request for Order Details
+if (isset($_GET['action']) && $_GET['action'] === 'get_order_details') {
+    header('Content-Type: application/json');
+    $orderID = $_GET['orderID'] ?? 0;
 
+    try {
+        // Fetch order info along with a DATEDIFF calculation to see how many days it spans
+        $stmt = $pdo->prepare("
+            SELECT o.*, tblusers.fullName AS hotelName,
+                   DATEDIFF(o.deliveryDate, o.orderDate) AS total_days
+            FROM tblOrders o
+            INNER JOIN tblusers ON o.userID = tblusers.userID
+            WHERE o.orderID = :orderID AND o.userID = :userID
+        ");
+        $stmt->execute(['orderID' => $orderID, 'userID' => $userID]);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($order) {
+            // Fetch associated order items
+            $itemStmt = $pdo->prepare("
+                SELECT oi.*, i.itemName 
+                FROM tblOrderItems oi
+                INNER JOIN tblItems i ON oi.itemID = i.itemID
+                WHERE oi.orderID = :orderID
+            ");
+            $itemStmt->execute(['orderID' => $orderID]);
+            $items = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            echo json_encode([
+                'success' => true,
+                'order' => $order,
+                'items' => $items
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Order not found']);
+        }
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit();
+}
+
+$billID = $_GET['billID'] ?? null;
 ?>
 
 <!doctype html>
@@ -79,11 +124,9 @@ $billID = $_GET['billID'] ?? null;
 
 <head>
     <title>FreshTrack - Hotel Orders</title>
-    <!-- Required meta tags -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- Bootstrap CSS v5.3.8 -->
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
         rel="stylesheet"
@@ -122,6 +165,7 @@ $billID = $_GET['billID'] ?? null;
                             <a class="nav-link active" href="hotel_orders.php">Orders</a>
                             <span class="visually-hidden">(current)</span>
                         </li>
+                        <li class="nav-item"><a class="nav-link" href="recurring_orders.php">Recurring</a></li>
                         <li class="nav-item">
                             <a class="nav-link" href="bill.php">Transactions</a>
                         </li>
@@ -159,23 +203,40 @@ $billID = $_GET['billID'] ?? null;
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Order Info -->
                     <input type="hidden" id="modal_currentOrderID">
                     <input type="hidden" id="modal_currentStatus">
-                    <div class="row mb-3">
-                        <div class="col">
+
+                    <div class="row mb-3 align-items-start">
+                        <div class="col-md-6">
                             <p class="mb-1"><strong>Order #:</strong> <span id="modal_orderID"></span></p>
                             <p class="mb-1"><strong>Hotel:</strong> <span id="modal_orderHotel"></span></p>
-                            <p class="mb-1 badge bg-primary fs-6">For <span id="modal_orderType"></span></p>
+                            <div class="mt-2 d-flex gap-2 flex-wrap">
+                                <span class="badge bg-primary fs-6 text-capitalize" id="modal_orderType"></span>
+                                <span class="badge fs-6 text-capitalize" id="modal_orderFrequency"></span>
+                            </div>
                         </div>
-                        <div class="col text-end">
+                        <div class="col-md-6 text-md-end mt-2 mt-md-0">
                             <p class="mb-1"><strong>Date:</strong> <span id="modal_orderDate"></span></p>
                             <p class="mb-1"><strong>Status:</strong> <span id="modal_orderStatus"></span></p>
                         </div>
                     </div>
+
+                    <div class="p-3 bg-light border rounded mb-3">
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <strong>Preferred Time Slot:</strong> <span id="modal_deliveryTimeSlot" class="text-capitalize text-secondary"></span>
+                            </div>
+                            <div class="col-sm-6">
+                                <strong>Estimated Delivery:</strong> <span id="modal_estimatedDelivery" class="text-secondary"></span>
+                            </div>
+                            <div class="col-12 border-top pt-2 mt-2">
+                                <strong>Fulfillment Timeline:</strong> <span id="modal_daysDifference" class="badge bg-secondary">0</span> Day(s) structured receiving window.
+                            </div>
+                        </div>
+                    </div>
                     <hr>
-                    <!-- Items Table -->
-                    <table class="table table-bordered">
+
+                    <table class="table table-bordered align-middle">
                         <thead class="table-secondary">
                             <tr>
                                 <th>Item</th>
@@ -185,7 +246,6 @@ $billID = $_GET['billID'] ?? null;
                             </tr>
                         </thead>
                         <tbody id="modal_orderItems">
-                            <!-- filled by JS -->
                         </tbody>
                     </table>
                     <div class="text-end">
@@ -203,6 +263,7 @@ $billID = $_GET['billID'] ?? null;
             </div>
         </div>
     </div>
+
     <main>
         <div class="container-lg mt-5">
             <h2 class="mb-1">Your Orders</h2>
@@ -279,7 +340,7 @@ $billID = $_GET['billID'] ?? null;
                                     echo '    <p class="card-text"><strong>Hotel:</strong> ' . htmlspecialchars($order['hotelName'] ?? 'N/A') . '</p>';
                                     echo '    <p class="card-text"><strong>Date:</strong> ' . date('M d, Y', strtotime($order['orderDate'])) . '</p>';
                                     echo '    <p class="card-text"><strong>Total:</strong> ₱' . number_format($order['totalAmount'], 2) . '</p>';
-                                    echo '    <p class="card-text text-uppercase"><span class="badge bg-success"> ' . htmlspecialchars($order['status'] ?? 'N/A') . '</span></p>';
+                                    echo '    <p class="card-text text-uppercase"><span class="badge ' . ($order['status'] === 'billed' ? 'bg-danger' : 'bg-success') . '"> ' . htmlspecialchars($order['status'] === 'billed' ? 'unpaid' : ($order['status'] ?? 'N/A')) . '</span></p>';
                                     echo '    <button class="btn btn-primary me-2" onclick="viewOrderDetails(' . $order['orderID'] . ')">View Details</button>';
                                     if (!empty($order['billID'])) {
                                         echo '    <a href="bill.php?billID=' . htmlspecialchars($order['billID']) . '" class="btn btn-outline-success">View Bill</a>';
@@ -306,6 +367,73 @@ $billID = $_GET['billID'] ?? null;
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
     <script src="script.js"></script>
+
+    <script>
+        function viewOrderDetails(orderID) {
+            // Query back to the self action handler endpoint
+            fetch(`hotel_orders.php?action=get_order_details&orderID=${orderID}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const order = data.order;
+
+                        // Mapping traditional properties
+                        document.getElementById('modal_orderID').textContent = order.orderID;
+                        document.getElementById('modal_orderHotel').textContent = order.hotelName;
+                        document.getElementById('modal_orderDate').textContent = order.orderDate;
+                        document.getElementById('modal_orderStatus').textContent = order.status;
+                        document.getElementById('modal_orderTotal').textContent = '₱' + parseFloat(order.totalAmount).toFixed(2);
+
+                        document.getElementById('modal_currentOrderID').value = order.orderID;
+                        document.getElementById('modal_cancelOrderID').value = order.orderID;
+
+                        // Injecting Cart Specific configuration sets
+                        document.getElementById('modal_orderType').textContent = order.orderType || 'Pickup';
+                        document.getElementById('modal_deliveryTimeSlot').textContent = order.deliveryTimeSlot || 'Not Specified';
+                        document.getElementById('modal_estimatedDelivery').textContent = order.estimatedDelivery || 'N/A';
+
+                        // Displaying handling days safely
+                        let dayDiff = parseInt(order.total_days);
+                        document.getElementById('modal_daysDifference').textContent = (!isNaN(dayDiff) && dayDiff >= 0) ? dayDiff : 0;
+
+                        // Map order pattern (one-time vs recurring order templates)
+                        const freqBadge = document.getElementById('modal_orderFrequency');
+                        if (order.recurringOrderID) {
+                            freqBadge.textContent = "Recurring Order";
+                            freqBadge.className = "badge bg-success fs-6";
+                        } else {
+                            freqBadge.textContent = "One-time Order";
+                            freqBadge.className = "badge bg-info text-dark fs-6";
+                        }
+
+                        // Loop render items list rows
+                        let itemsHtml = '';
+                        data.items.forEach(item => {
+                            let subtotal = parseFloat(item.price) * parseInt(item.quantity);
+                            itemsHtml += `
+                            <tr>
+                                <td>${item.itemName}</td>
+                                <td>₱${parseFloat(item.price).toFixed(2)}</td>
+                                <td>${item.quantity}</td>
+                                <td>₱${subtotal.toFixed(2)}</td>
+                            </tr>
+                        `;
+                        });
+                        document.getElementById('modal_orderItems').innerHTML = itemsHtml;
+
+                        // Programmatically trigger Bootstrap modal structure view
+                        let targetModal = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
+                        targetModal.show();
+                    } else {
+                        alert("Error: Could not retrieve target order records.");
+                    }
+                })
+                .catch(error => {
+                    console.error("Fetch Exception Error:", error);
+                    alert("An unexpected error occurred while loading details.");
+                });
+        }
+    </script>
 </body>
 
 </html>
