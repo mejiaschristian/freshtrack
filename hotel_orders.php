@@ -8,7 +8,30 @@ if (!isLoggedIn()) {
     header('Location: index.php');
     exit();
 }
+// Helper function to sync cached values from batches to tblItems
+function syncItemFromBatchesLocal($pdo, $itemID)
+{
+    $stmt = $pdo->prepare("
+        SELECT COALESCE(SUM(quantity), 0) AS totalQty,
+               MIN(CASE WHEN quantity > 0 THEN expiryDate END) AS fifoExpiry
+        FROM tblItemBatches
+        WHERE itemID = :id
+    ");
+    $stmt->execute(['id' => $itemID]);
+    $sync = $stmt->fetch(PDO::FETCH_ASSOC);
 
+    $updateItemStmt = $pdo->prepare("
+        UPDATE tblItems 
+        SET itemQuantity = :qty, 
+            itemExpiryDate = :exp 
+        WHERE itemID = :itemID
+    ");
+    $updateItemStmt->execute([
+        'qty'    => $sync['totalQty'],
+        'exp'    => $sync['fifoExpiry'] ?? date('Y-m-d'),
+        'itemID' => $itemID
+    ]);
+}
 $userID = $_SESSION['user_id'];
 $message = "";
 $messageType = "";
@@ -32,10 +55,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cance
                 $stmt->execute(['orderID' => $orderID]);
                 $orderItems = $stmt->fetchAll();
 
-                // Restore stock
+                // Restore stock accurately across split batches using Newest-to-Oldest Logic
                 foreach ($orderItems as $item) {
-                    $pdo->prepare("UPDATE tblItems SET itemQuantity = itemQuantity + :qty WHERE itemID = :itemID")
-                        ->execute(['qty' => $item['quantity'], 'itemID' => $item['itemID']]);
+                    $quantityToRestore = (int)$item['quantity'];
+                    $itemID = $item['itemID'];
+
+                    // 1. Get all batches for this item that have room to receive returned stock,
+                    // sorted by DESC to replenish the newest batches first
+                    $batchStmt = $pdo->prepare("
+                        SELECT batchID, quantity, initialQty 
+                        FROM tblItemBatches 
+                        WHERE itemID = :itemID AND quantity < initialQty
+                        ORDER BY expiryDate DESC
+                    ");
+                    $batchStmt->execute([
+                        'itemID' => $itemID
+                    ]);
+                    $activeBatches = $batchStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    foreach ($activeBatches as $batch) {
+                        if ($quantityToRestore <= 0) break;
+
+                        $currentQty = (int)$batch['quantity'];
+                        $maxQty     = (int)$batch['initialQty'];
+                        $roomLeft   = $maxQty - $currentQty; // How many items this batch is missing
+
+                        if ($roomLeft > 0) {
+                            // Determine how much to put back into this specific batch
+                            $amountToReturn = min($quantityToRestore, $roomLeft);
+
+                            $updateBatch = $pdo->prepare("
+                                UPDATE tblItemBatches 
+                                SET quantity = quantity + :amount 
+                                WHERE batchID = :batchID
+                            ");
+                            $updateBatch->execute([
+                                'amount'  => $amountToReturn,
+                                'batchID' => $batch['batchID']
+                            ]);
+
+                            // Deduct from our remaining pool of items waiting to be returned
+                            $quantityToRestore -= $amountToReturn;
+                        }
+                    }
+
+                    // 2. Emergency Backup Fallback: If there's still leftover quantity,
+                    // add the remainder to the newest available batch.
+                    if ($quantityToRestore > 0) {
+                        $fallbackStmt = $pdo->prepare("
+                            SELECT batchID FROM tblItemBatches 
+                            WHERE itemID = :itemID
+                            ORDER BY expiryDate DESC LIMIT 1
+                        ");
+                        $fallbackStmt->execute(['itemID' => $itemID]);
+                        $fallbackBatch = $fallbackStmt->fetch();
+
+                        if ($fallbackBatch) {
+                            $updateFallback = $pdo->prepare("UPDATE tblItemBatches SET quantity = quantity + :qty WHERE batchID = :batchID");
+                            $updateFallback->execute(['qty' => $quantityToRestore, 'batchID' => $fallbackBatch['batchID']]);
+                        }
+                    }
+
+                    // 3. Keep the frontend web cache table perfectly synchronized
+                    syncItemFromBatchesLocal($pdo, $itemID);
                 }
 
                 // Get bill IDs before deleting
@@ -195,6 +277,7 @@ $billID = $_GET['billID'] ?? null;
         </nav>
     </header>
 
+    <!-- Order Details Modal -->
     <div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -217,7 +300,7 @@ $billID = $_GET['billID'] ?? null;
                         </div>
                         <div class="col-md-6 text-md-end mt-2 mt-md-0">
                             <p class="mb-1"><strong>Date:</strong> <span id="modal_orderDate"></span></p>
-                            <p class="mb-1"><strong>Status:</strong> <span id="modal_orderStatus"></span></p>
+                            <p class="mb-1"><strong>Status:</strong> <span class="badge bg-warning text-uppercase text-black" id="modal_orderStatus"></span></p>
                         </div>
                     </div>
 
@@ -288,7 +371,7 @@ $billID = $_GET['billID'] ?? null;
                                 INNER JOIN tblusers ON tblOrders.userID = tblusers.userID
                                 WHERE tblOrders.userID = :userID AND
                                 (tblOrders.status = 'pending' OR tblOrders.status = '')
-                                ORDER BY tblOrders.orderDate DESC LIMIT 3 
+                                ORDER BY tblOrders.orderDate DESC
                             ");
                             $stmt->execute(['userID' => $_SESSION['user_id']]);
                             $pendingOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -326,7 +409,7 @@ $billID = $_GET['billID'] ?? null;
                                 LEFT JOIN tblBillOrders ON tblOrders.orderID = tblBillOrders.orderID
                                 WHERE tblOrders.userID = :userID AND
                                 (tblOrders.status = 'billed' OR tblOrders.status = 'paid')
-                                ORDER BY tblOrders.orderDate DESC LIMIT 3 
+                                ORDER BY tblOrders.orderDate DESC  
                             ");
                             $stmt->execute(['userID' => $_SESSION['user_id']]);
 
@@ -340,7 +423,7 @@ $billID = $_GET['billID'] ?? null;
                                     echo '    <p class="card-text"><strong>Hotel:</strong> ' . htmlspecialchars($order['hotelName'] ?? 'N/A') . '</p>';
                                     echo '    <p class="card-text"><strong>Date:</strong> ' . date('M d, Y', strtotime($order['orderDate'])) . '</p>';
                                     echo '    <p class="card-text"><strong>Total:</strong> ₱' . number_format($order['totalAmount'], 2) . '</p>';
-                                    echo '    <p class="card-text text-uppercase"><span class="badge ' . ($order['status'] === 'billed' ? 'bg-danger' : 'bg-success') . '"> ' . htmlspecialchars($order['status'] === 'billed' ? 'unpaid' : ($order['status'] ?? 'N/A')) . '</span></p>';
+                                    echo '    <p class="card-text text-uppercase"><span class="badge bg-success"> ' . htmlspecialchars($order['status'] ?? 'N/A') . '</span></p>';
                                     echo '    <button class="btn btn-primary me-2" onclick="viewOrderDetails(' . $order['orderID'] . ')">View Details</button>';
                                     if (!empty($order['billID'])) {
                                         echo '    <a href="bill.php?billID=' . htmlspecialchars($order['billID']) . '" class="btn btn-outline-success">View Bill</a>';
@@ -368,72 +451,7 @@ $billID = $_GET['billID'] ?? null;
         crossorigin="anonymous"></script>
     <script src="script.js"></script>
 
-    <script>
-        function viewOrderDetails(orderID) {
-            // Query back to the self action handler endpoint
-            fetch(`hotel_orders.php?action=get_order_details&orderID=${orderID}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const order = data.order;
 
-                        // Mapping traditional properties
-                        document.getElementById('modal_orderID').textContent = order.orderID;
-                        document.getElementById('modal_orderHotel').textContent = order.hotelName;
-                        document.getElementById('modal_orderDate').textContent = order.orderDate;
-                        document.getElementById('modal_orderStatus').textContent = order.status;
-                        document.getElementById('modal_orderTotal').textContent = '₱' + parseFloat(order.totalAmount).toFixed(2);
-
-                        document.getElementById('modal_currentOrderID').value = order.orderID;
-                        document.getElementById('modal_cancelOrderID').value = order.orderID;
-
-                        // Injecting Cart Specific configuration sets
-                        document.getElementById('modal_orderType').textContent = order.orderType || 'Pickup';
-                        document.getElementById('modal_deliveryTimeSlot').textContent = order.deliveryTimeSlot || 'Not Specified';
-                        document.getElementById('modal_estimatedDelivery').textContent = order.estimatedDelivery || 'N/A';
-
-                        // Displaying handling days safely
-                        let dayDiff = parseInt(order.total_days);
-                        document.getElementById('modal_daysDifference').textContent = (!isNaN(dayDiff) && dayDiff >= 0) ? dayDiff : 0;
-
-                        // Map order pattern (one-time vs recurring order templates)
-                        const freqBadge = document.getElementById('modal_orderFrequency');
-                        if (order.recurringOrderID) {
-                            freqBadge.textContent = "Recurring Order";
-                            freqBadge.className = "badge bg-success fs-6";
-                        } else {
-                            freqBadge.textContent = "One-time Order";
-                            freqBadge.className = "badge bg-info text-dark fs-6";
-                        }
-
-                        // Loop render items list rows
-                        let itemsHtml = '';
-                        data.items.forEach(item => {
-                            let subtotal = parseFloat(item.price) * parseInt(item.quantity);
-                            itemsHtml += `
-                            <tr>
-                                <td>${item.itemName}</td>
-                                <td>₱${parseFloat(item.price).toFixed(2)}</td>
-                                <td>${item.quantity}</td>
-                                <td>₱${subtotal.toFixed(2)}</td>
-                            </tr>
-                        `;
-                        });
-                        document.getElementById('modal_orderItems').innerHTML = itemsHtml;
-
-                        // Programmatically trigger Bootstrap modal structure view
-                        let targetModal = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
-                        targetModal.show();
-                    } else {
-                        alert("Error: Could not retrieve target order records.");
-                    }
-                })
-                .catch(error => {
-                    console.error("Fetch Exception Error:", error);
-                    alert("An unexpected error occurred while loading details.");
-                });
-        }
-    </script>
 </body>
 
 </html>

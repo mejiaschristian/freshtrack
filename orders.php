@@ -2,10 +2,62 @@
 session_start();
 require_once 'auth.php';
 require_once 'db.php';
-
+// Include the automation script logic to process operations seamlessly
+require_once 'cron_process_recurring.php';
 // Check if user is logged in
 if (!isLoggedIn()) {
     header('Location: index.php');
+    exit();
+}
+
+// AJAX endpoint for fetching order details from admin orders page
+if (isset($_GET['action']) && $_GET['action'] === 'get_order_details') {
+    header('Content-Type: application/json');
+    $orderID = intval($_GET['orderID'] ?? 0);
+
+    try {
+        $query = "
+            SELECT o.*, u.fullName AS hotelName,
+                   DATEDIFF(o.deliveryDate, o.orderDate) AS total_days,
+                   bo.billID
+            FROM tblOrders o
+            INNER JOIN tblusers u ON o.userID = u.userID
+            LEFT JOIN tblBillOrders bo ON o.orderID = bo.orderID
+            WHERE o.orderID = :orderID
+        ";
+
+        if (empty($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
+            $query .= " AND o.userID = :userID";
+        }
+
+        $stmt = $pdo->prepare($query);
+        $params = ['orderID' => $orderID];
+
+        if (empty($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
+            $params['userID'] = $_SESSION['user_id'];
+        }
+
+        $stmt->execute($params);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$order) {
+            echo json_encode(['success' => false, 'error' => 'Order not found']);
+            exit();
+        }
+
+        $itemStmt = $pdo->prepare(
+            "SELECT oi.*, i.itemName
+             FROM tblOrderItems oi
+             INNER JOIN tblItems i ON oi.itemID = i.itemID
+             WHERE oi.orderID = :orderID"
+        );
+        $itemStmt->execute(['orderID' => $orderID]);
+        $items = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode(['success' => true, 'order' => $order, 'items' => $items]);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
     exit();
 }
 ?>
@@ -99,23 +151,40 @@ if (!isLoggedIn()) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Order Info -->
                     <input type="hidden" id="modal_currentOrderID">
                     <input type="hidden" id="modal_currentStatus">
-                    <div class="row mb-3">
-                        <div class="col">
+
+                    <div class="row mb-3 align-items-start">
+                        <div class="col-md-6">
                             <p class="mb-1"><strong>Order #:</strong> <span id="modal_orderID"></span></p>
                             <p class="mb-1"><strong>Hotel:</strong> <span id="modal_orderHotel"></span></p>
-                            <p class="mb-1 badge bg-primary fs-6">For <span id="modal_orderType"></span></p>
+                            <div class="mt-2 d-flex gap-2 flex-wrap">
+                                <span class="badge bg-primary fs-6 text-capitalize" id="modal_orderType"></span>
+                                <span class="badge bg-info text-dark fs-6" id="modal_orderFrequency"></span>
+                            </div>
                         </div>
-                        <div class="col text-end">
+                        <div class="col-md-6 text-md-end mt-2 mt-md-0">
                             <p class="mb-1"><strong>Date:</strong> <span id="modal_orderDate"></span></p>
-                            <p class="mb-1"><strong>Status:</strong> <span id="modal_orderStatus"></span></p>
+                            <p class="mb-1"><strong>Status:</strong> <span class="badge bg-warning text-dark text-uppercase" id="modal_orderStatus"></span></p>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-light border rounded mb-3">
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <strong>Preferred Time Slot:</strong> <span id="modal_deliveryTimeSlot" class="text-capitalize text-secondary"></span>
+                            </div>
+                            <div class="col-sm-6">
+                                <strong>Estimated Delivery:</strong> <span id="modal_estimatedDelivery" class="text-secondary"></span>
+                            </div>
+                            <div class="col-12 border-top pt-2 mt-2">
+                                <strong>Fulfillment Timeline:</strong> <span id="modal_daysDifference" class="badge bg-secondary">0</span> Day(s) structured receiving window.
+                            </div>
                         </div>
                     </div>
                     <hr>
-                    <!-- Items Table -->
-                    <table class="table table-bordered">
+
+                    <table class="table table-bordered align-middle">
                         <thead class="table-secondary">
                             <tr>
                                 <th>Item</th>
@@ -125,7 +194,6 @@ if (!isLoggedIn()) {
                             </tr>
                         </thead>
                         <tbody id="modal_orderItems">
-                            <!-- filled by JS -->
                         </tbody>
                     </table>
                     <div class="text-end">
@@ -135,7 +203,7 @@ if (!isLoggedIn()) {
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-success" id="completeOrderBtn" onclick="completeOrder()">Complete Order</button>
-                    <a href="#" class="btn btn-primary d-none" id="viewBillBtn">View Bill</a>
+                    <button type="button" class="btn btn-primary d-none" id="viewBillBtn">View Bill</button>
                 </div>
             </div>
         </div>

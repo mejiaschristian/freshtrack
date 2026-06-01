@@ -149,7 +149,7 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </nav>
     </header>
 
-    <main class="container-lg mt-5">
+    <main class="container-lg mt-3">
 
         <?php if ($billID && $bill): ?>
             <!-- ===== SINGLE BILL VIEW ===== -->
@@ -247,76 +247,76 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 </table>
                             </div>
 
-                            <?php if ($bill['status'] !== 'paid'): ?>
-                                <div class="d-flex row container align-items-center justify-content-center">
-                                    <div class="col-md-12 col-lg-6 alert alert-info mt-3">
-                                        💡 You may pay this bill in full or request partial payment. Contact <b>+639176771234</b> for card payment or scan the QR Code process your payment. <br>
+                            <div class="d-flex justify-content-center align-items-center gap-4">
+                                <?php if ($bill['status'] !== 'paid'): ?>
+                                    <div class="alert alert-info mt-3">
+                                        💡 You may pay this bill in full or request partial payment. Scan the QR Code for wallet payment or contact FreshTrack to process bank payment.
                                     </div>
-                                    <div class="col-md-12 col-lg-6 img-container">
-                                        <img class="qr-img" src="qr_payment.JPG" alt="QR Code Payment">
+                                    <div class="text-center mt-4">
+                                        <img src="qr_payment.JPG" alt="QR Code for Payment" class="img-fluid" style="max-width: 180px;">
+                                        <p class="mt-2 text-muted small">Scan to Pay</p>
+                                    <?php endif; ?>
                                     </div>
-                                </div>
-                            <?php endif; ?>
-                        </div>
+                            </div>
 
-                        <div class="card-footer d-flex justify-content-between">
-                            <a href="bill.php" class="btn btn-outline-secondary">← Back to Bills</a>
-                            <button onclick="window.print()" class="btn btn-success">🖨️ Print Receipt</button>
+                            <div class="card-footer d-flex justify-content-between">
+                                <a href="bill.php" class="btn btn-outline-secondary">← Back to Bills</a>
+                                <button onclick="window.print()" class="btn btn-success">🖨️ Print Receipt</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-        <?php else: ?>
-            <!-- ===== ALL BILLS LIST ===== -->
-            <h2 class="mb-1">My Bills</h2>
-            <p class="text-muted">View and track all your bills here.</p>
-
-            <?php if (empty($allBills)): ?>
-                <div class="text-center py-5">
-                    <h5 class="text-muted">No bills yet.</h5>
-                    <a href="shop.php" class="btn btn-success mt-3">Start Shopping</a>
-                </div>
             <?php else: ?>
-                <div class="card">
-                    <div class="bills-card card-body p-0">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-secondary">
-                                <tr>
-                                    <th>Bill Number</th>
-                                    <th>Bill Date</th>
-                                    <th>Due Date</th>
-                                    <th>Total</th>
-                                    <th>Penalty</th>
-                                    <th>Status</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($allBills as $b): ?>
-                                    <tr class="<?php echo strtotime($b['dueDate']) < strtotime('today') && $b['status'] === 'unpaid' ? 'table-danger' : ''; ?>">
-                                        <td><strong><?php echo htmlspecialchars($b['billNumber']); ?></strong></td>
-                                        <td><?php echo date('M d, Y', strtotime($b['billDate'])); ?></td>
-                                        <td><?php echo date('M d, Y', strtotime($b['dueDate'])); ?></td>
-                                        <td>₱<?php echo number_format($b['totalAmount'], 2); ?></td>
-                                        <td><?php echo $b['penaltyAmount'] > 0 ? '₱' . number_format($b['penaltyAmount'], 2) : '—'; ?></td>
-                                        <td>
-                                            <span class="badge 
-                                            <?php echo $b['status'] === 'paid' ? 'bg-success' : ($b['status'] === 'partial' ? 'bg-warning text-dark' : 'bg-danger'); ?>">
-                                                <?php echo strtoupper($b['status']); ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <a href="bill.php?billID=<?php echo $b['billID']; ?>" class="btn btn-sm btn-outline-primary">View</a>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                <!-- ===== ALL BILLS LIST ===== -->
+                <h2 class="mb-1">My Bills</h2>
+                <p class="text-muted">View and track all your bills here.</p>
+
+                <?php if (empty($allBills)): ?>
+                    <div class="text-center py-5">
+                        <h5 class="text-muted">No bills yet.</h5>
+                        <a href="shop.php" class="btn btn-success mt-3">Start Shopping</a>
                     </div>
-                </div>
+                <?php else: ?>
+                    <div class="card">
+                        <div class="bills-card card-body p-0">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-secondary">
+                                    <tr>
+                                        <th>Bill Number</th>
+                                        <th>Bill Date</th>
+                                        <th>Due Date</th>
+                                        <th>Total</th>
+                                        <th>Penalty</th>
+                                        <th>Status</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($allBills as $b): ?>
+                                        <tr class="<?php echo strtotime($b['dueDate']) < strtotime('today') && $b['status'] === 'unpaid' ? 'table-danger' : ''; ?>">
+                                            <td><strong><?php echo htmlspecialchars($b['billNumber']); ?></strong></td>
+                                            <td><?php echo date('M d, Y', strtotime($b['billDate'])); ?></td>
+                                            <td><?php echo date('M d, Y', strtotime($b['dueDate'])); ?></td>
+                                            <td>₱<?php echo number_format($b['totalAmount'], 2); ?></td>
+                                            <td><?php echo $b['penaltyAmount'] > 0 ? '₱' . number_format($b['penaltyAmount'], 2) : '—'; ?></td>
+                                            <td>
+                                                <span class="badge 
+                                            <?php echo $b['status'] === 'paid' ? 'bg-success' : ($b['status'] === 'partial' ? 'bg-warning text-dark' : 'bg-danger'); ?>">
+                                                    <?php echo strtoupper($b['status']); ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <a href="bill.php?billID=<?php echo $b['billID']; ?>" class="btn btn-sm btn-outline-primary">View</a>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
-        <?php endif; ?>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"

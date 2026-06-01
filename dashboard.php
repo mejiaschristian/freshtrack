@@ -135,27 +135,31 @@ $revenueComp       = getRevenueComparison($pdo);
 
         <!-- Alerts Section -->
         <?php if (!empty($lowStockItems)): ?>
-            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert">
                 <h5 class="alert-heading">⚠️ Low Stock Alert</h5>
-                <p><?php echo count($lowStockItems); ?> item(s) are running low on stock:</p>
-                <ul class="mb-0">
-                    <?php foreach (array_slice($lowStockItems, 0, 5) as $item): ?>
-                        <li><?php echo htmlspecialchars($item['itemName']); ?> - Only <?php echo $item['itemQuantity']; ?> left</li>
-                    <?php endforeach; ?>
-                </ul>
+                <p class="mb-2"><?php echo count($lowStockItems); ?> item(s) are running low on stock:</p>
+                <div style="max-height: 150px; overflow-y: auto; padding-right: 10px;">
+                    <ul class="mb-0">
+                        <?php foreach ($lowStockItems as $item): ?>
+                            <li><strong><?php echo htmlspecialchars($item['itemName'] ?? $item['itemname'] ?? 'Item'); ?></strong> - Only <?php echo $item['itemQuantity'] ?? $item['itemquantity'] ?? 0; ?> left</li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
 
         <?php if (!empty($expiringItems)): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <h5 class="alert-heading">🔴 Expiring Soon</h5>
-                <p><?php echo count($expiringItems); ?> item(s) are expiring within 7 days:</p>
-                <ul class="mb-0">
-                    <?php foreach (array_slice($expiringItems, 0, 5) as $item): ?>
-                        <li><?php echo htmlspecialchars($item['itemName']); ?> - Expires <?php echo date('M d, Y', strtotime($item['itemExpiryDate'])); ?></li>
-                    <?php endforeach; ?>
-                </ul>
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                <h5 class="alert-heading">🔴 Nearing Expiration (Next 7 Days)</h5>
+                <p class="mb-2"><?php echo count($expiringItems); ?> batch record(s) nearing limit:</p>
+                <div style="max-height: 150px; overflow-y: auto; padding-right: 10px;">
+                    <ul class="mb-0">
+                        <?php foreach ($expiringItems as $batch): ?>
+                            <li>Batch <?php echo htmlspecialchars($batch['batchCode'] ?? $batch['batchcode'] ?? 'N/A'); ?>: <?php echo htmlspecialchars($batch['itemName'] ?? $batch['itemname'] ?? 'Item'); ?> (Qty: <?php echo $batch['quantity']; ?>) - Expires on <?php echo date('M d, Y', strtotime($batch['expiryDate'] ?? $batch['expirydate'])); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
@@ -171,33 +175,38 @@ $revenueComp       = getRevenueComparison($pdo);
                         <tr>
                             <th>Order ID</th>
                             <th>Customer</th>
-                            <th>Date</th>
+                            <th>Total Amount</th>
                             <th>Status</th>
+                            <th>Date Placed</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php
                         if (!empty($recentOrders)): ?>
                             <?php foreach ($recentOrders as $order): ?>
+                                <?php
+                                // Reference the new aliased key 'orderStatus' first
+                                $currentStatus = $order['orderStatus'] ?? $order['status'] ?? 'pending';
+
+                                // Determine visual badge colors dynamically
+                                $badgeClass = 'bg-secondary';
+                                if ($currentStatus === 'paid') $badgeClass = 'bg-success';
+                                elseif ($currentStatus === 'pending') $badgeClass = 'bg-warning text-dark';
+                                elseif ($currentStatus === 'partial') $badgeClass = 'bg-info text-dark';
+                                elseif ($currentStatus === 'unpaid' || $currentStatus === 'billed') $badgeClass = 'bg-danger';
+                                ?>
                                 <tr>
-                                    <td>#<?php echo $order['orderID']; ?></td>
+                                    <td>#<?php echo htmlspecialchars($order['orderID']); ?></td>
                                     <td><?php echo htmlspecialchars($order['customerName']); ?></td>
-                                    <td><?php echo date('M d, Y H:i', strtotime($order['orderDate'])); ?></td>
+                                    <td>₱<?php echo number_format($order['totalAmount'], 2); ?></td>
                                     <td>
-                                        <?php
-                                        $badgeColor = match ($order['status']) {
-                                            'pending' => 'warning text-dark',
-                                            'billed'  => 'primary',
-                                            'partial' => 'warning text-dark',
-                                            'paid'    => 'success',
-                                            default   => 'secondary'
-                                        };
-                                        ?>
-                                        <span class="badge bg-<?php echo $badgeColor; ?>">
-                                            <?php echo ucfirst($order['status']); ?>
+                                        <span class="badge <?php echo $badgeClass; ?>">
+                                            <?php echo strtoupper(htmlspecialchars($currentStatus)); ?>
                                         </span>
                                     </td>
+                                    <td><?php echo date('M d, Y', strtotime($order['orderDate'])); ?></td>
                                 </tr>
+
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
@@ -215,39 +224,74 @@ $revenueComp       = getRevenueComparison($pdo);
             </div>
             <div class="analytics-body card-body">
 
-                <!-- Revenue Comparison -->
                 <div class="row">
                     <div class="col-12 mb-3">
                         <div class="card shadow-sm">
-                            <div class="card-body text-center">
-                                <h5 class="card-title text-muted">Revenue This Week vs Last Week</h5>
+                            <div class="card-body">
+                                <h5 class="card-title text-muted text-center mb-4">Weekly Sales Performance Trends</h5>
+
                                 <?php
-                                $thisWeek = $revenueComp['thisWeek'] ?? 0;
-                                $lastWeek = $revenueComp['lastWeek'] ?? 0;
-                                $diff     = $thisWeek - $lastWeek;
-                                $pct      = $lastWeek > 0 ? round(($diff / $lastWeek) * 100, 1) : null;
-                                $arrow    = $diff >= 0 ? '▲' : '▼';
-                                $color    = $diff >= 0 ? 'success' : 'danger';
+                                $thisWeekR = $revenueComp['thisWeekRealized'] ?? 0;
+                                $lastWeekR = $revenueComp['lastWeekRealized'] ?? 0;
+                                $diffR     = $thisWeekR - $lastWeekR;
+                                $pctR      = $lastWeekR > 0 ? round(($diffR / $lastWeekR) * 100, 1) : null;
+                                $arrowR    = $diffR >= 0 ? '▲' : '▼';
+                                $colorR    = $diffR >= 0 ? 'success' : 'danger';
                                 ?>
-                                <div class="d-flex align-items-center justify-content-center text-center gap-4 flex-wrap mt-2">
-                                    <div>
-                                        <div class="text-muted small">This Week</div>
-                                        <div class="fs-4 fw-bold text-success">₱<?php echo number_format($thisWeek, 2); ?></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-muted small">Last Week</div>
-                                        <div class="fs-4 fw-bold text-secondary">₱<?php echo number_format($lastWeek, 2); ?></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-muted small">Change</div>
-                                        <div class="fs-5 fw-bold text-<?php echo $color; ?>">
-                                            <?php echo $arrow; ?> ₱<?php echo number_format(abs($diff), 2); ?>
-                                            <?php if ($pct !== null): ?>
-                                                <span class="fs-6">(<?php echo ($diff >= 0 ? '+' : ''); ?><?php echo $pct; ?>%)</span>
-                                            <?php endif; ?>
+                                <div class="mb-4 border-bottom pb-3">
+                                    <div class="small fw-semibold text-muted text-center text-uppercase mb-2">Collected Cash Revenue (Paid / Partial)</div>
+                                    <div class="d-flex align-items-center justify-content-center text-center gap-4 flex-wrap">
+                                        <div>
+                                            <div class="text-muted small">This Week</div>
+                                            <div class="fs-5 fw-bold text-success">₱<?php echo number_format($thisWeekR, 2); ?></div>
+                                        </div>
+                                        <div>
+                                            <div class="text-muted small">Last Week</div>
+                                            <div class="fs-5 fw-bold text-secondary">₱<?php echo number_format($lastWeekR, 2); ?></div>
+                                        </div>
+                                        <div>
+                                            <div class="text-muted small">Trend</div>
+                                            <div class="fs-6 fw-bold text-<?php echo $colorR; ?>">
+                                                <?php echo $arrowR; ?> ₱<?php echo number_format(abs($diffR), 2); ?>
+                                                <?php if ($pctR !== null): ?>
+                                                    <span>(<?php echo ($diffR >= 0 ? '+' : ''); ?><?php echo $pctR; ?>%)</span>
+                                                <?php endif; ?>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+
+                                <?php
+                                $thisWeekE = $revenueComp['thisWeekExpected'] ?? 0;
+                                $lastWeekE = $revenueComp['lastWeekExpected'] ?? 0;
+                                $diffE     = $thisWeekE - $lastWeekE;
+                                $pctE      = $lastWeekE > 0 ? round(($diffE / $lastWeekE) * 100, 1) : null;
+                                $arrowE    = $diffE >= 0 ? '▲' : '▼';
+                                $colorE    = $diffE >= 0 ? 'info' : 'warning text-dark';
+                                ?>
+                                <div>
+                                    <div class="small fw-semibold text-muted text-center text-uppercase mb-2">Expected Outbound Revenue (Unpaid / Pending)</div>
+                                    <div class="d-flex align-items-center justify-content-center text-center gap-4 flex-wrap">
+                                        <div>
+                                            <div class="text-muted small">This Week</div>
+                                            <div class="fs-5 fw-bold text-info">₱<?php echo number_format($thisWeekE, 2); ?></div>
+                                        </div>
+                                        <div>
+                                            <div class="text-muted small">Last Week</div>
+                                            <div class="fs-5 fw-bold text-secondary">₱<?php echo number_format($lastWeekE, 2); ?></div>
+                                        </div>
+                                        <div>
+                                            <div class="text-muted small">Trend</div>
+                                            <div class="fs-6 fw-bold text-<?php echo $diffE >= 0 ? 'success' : 'danger'; ?>">
+                                                <?php echo $arrowE; ?> ₱<?php echo number_format(abs($diffE), 2); ?>
+                                                <?php if ($pctE !== null): ?>
+                                                    <span>(<?php echo ($diffE >= 0 ? '+' : ''); ?><?php echo $pctE; ?>%)</span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
                     </div>
@@ -295,43 +339,76 @@ $revenueComp       = getRevenueComparison($pdo);
                     <div class="col-md-6 mb-3">
                         <div class="card h-100 shadow-sm">
                             <div class="card-body">
-                                <h5 class="card-title text-muted">Expiry / Wastage (Next 7 Days)</h5>
+                                <h5 class="card-title text-muted mb-3">Expiry / Wastage (Next 7 Days)</h5>
                                 <?php
-                                $totalWaste = array_sum(array_column($expiringWithValue, 'wasteValue'));
+                                $totalWaste = !empty($expiringWithValue) ? array_sum(array_column($expiringWithValue, 'total_waste_value')) : 0;
                                 ?>
                                 <?php if (!empty($expiringWithValue)): ?>
                                     <div class="alert alert-danger py-2 mb-2">
                                         Estimated waste value: <strong>₱<?php echo number_format($totalWaste, 2); ?></strong>
                                     </div>
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-hover mb-0">
-                                            <thead class="table-light">
+                                    <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                                        <table class="table table-sm table-hover mb-0 align-middle">
+                                            <thead class="table-light sticky-top">
                                                 <tr>
-                                                    <th>Item</th>
-                                                    <th>Qty</th>
-                                                    <th>Expires</th>
-                                                    <th>Value</th>
+                                                    <th>Item Name</th>
+                                                    <th class="text-center">Total Qty</th>
+                                                    <th class="text-end">Est. Loss Value</th>
+                                                    <th class="text-center">Batches</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 <?php foreach ($expiringWithValue as $item): ?>
+                                                    <?php
+                                                    $wName = $item['itemName'] ?? $item['itemname'] ?? 'Unknown';
+                                                    $uniqueID = $item['itemID'] ?? rand(100, 999);
+                                                    ?>
                                                     <tr>
-                                                        <td><?php echo htmlspecialchars($item['itemName']); ?></td>
-                                                        <td><?php echo $item['itemQuantity']; ?></td>
-                                                        <td><?php echo date('M d', strtotime($item['itemExpiryDate'])); ?></td>
-                                                        <td class="text-danger">₱<?php echo number_format($item['wasteValue'], 2); ?></td>
+                                                        <td><strong><?php echo htmlspecialchars($wName); ?></strong></td>
+                                                        <td class="text-center"><?php echo $item['total_qty']; ?></td>
+                                                        <td class="text-end text-danger fw-semibold">₱<?php echo number_format($item['total_waste_value'], 2); ?></td>
+                                                        <td class="text-center">
+                                                            <button class="btn btn-xs btn-outline-secondary py-0 px-2" type="button" data-bs-toggle="collapse" data-bs-target="#batchDetails_<?php echo $uniqueID; ?>">
+                                                                View
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                    <tr class="collapse" id="batchDetails_<?php echo $uniqueID; ?>">
+                                                        <td colspan="4" class="bg-light p-2">
+                                                            <div class="mx-3 border rounded p-2 bg-white">
+                                                                <table class="table table-sm table-borderless mb-0" style="font-size: 0.85rem;">
+                                                                    <thead class="text-muted">
+                                                                        <tr>
+                                                                            <th>Batch Code</th>
+                                                                            <th>Quantity</th>
+                                                                            <th>Expiration Date</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        <?php foreach ($item['batches'] as $b): ?>
+                                                                            <tr>
+                                                                                <td><code><?php echo htmlspecialchars($b['batchCode'] ?? $b['batchcode'] ?? 'N/A'); ?></code></td>
+                                                                                <td><?php echo $b['quantity']; ?></td>
+                                                                                <td><?php echo date('M d, Y', strtotime($b['expiryDate'] ?? $b['expirydate'])); ?></td>
+                                                                            </tr>
+                                                                        <?php endforeach; ?>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </td>
                                                     </tr>
                                                 <?php endforeach; ?>
                                             </tbody>
                                         </table>
                                     </div>
                                 <?php else: ?>
-                                    <p class="text-muted mt-3 text-center">No items expiring soon.</p>
+                                    <div class="text-center py-4">
+                                        <p class="text-muted mb-0">No items expiring or past due found.</p>
+                                    </div>
                                 <?php endif; ?>
                             </div>
                         </div>
                     </div>
-
                 </div>
 
 
@@ -346,37 +423,50 @@ $revenueComp       = getRevenueComparison($pdo);
                             // Build full 7-day label array, filling zeros for missing days
                             $days = [];
                             for ($i = 6; $i >= 0; $i--) {
-                                $days[date('Y-m-d', strtotime("-$i days"))] = ['orders' => 0, 'revenue' => 0];
+                                $days[date('Y-m-d', strtotime("-$i days"))] = ['orders' => 0, 'revenue' => 0, 'expected_revenue' => 0];
                             }
                             foreach ($ordersTrend as $row) {
                                 if (isset($days[$row['day']])) {
-                                    $days[$row['day']]['orders']  = (int)$row['orderCount'];
-                                    $days[$row['day']]['revenue'] = (float)$row['revenue'];
+                                    $days[$row['day']]['orders']           = (int)$row['orderCount'];
+                                    $days[$row['day']]['revenue']          = (float)$row['revenue'];
+                                    $days[$row['day']]['expected_revenue'] = (float)($row['expected_revenue'] ?? 0);
                                 }
                             }
                             echo json_encode(array_map(fn($d) => date('D M d', strtotime($d)), array_keys($days)));
                             ?>;
         const trendOrders = <?php echo json_encode(array_column(array_values($days), 'orders')); ?>;
         const trendRevenue = <?php echo json_encode(array_column(array_values($days), 'revenue')); ?>;
+        const trendExpectedRevenue = <?php echo json_encode(array_column(array_values($days), 'expected_revenue')); ?>;
 
         new Chart(document.getElementById('ordersTrendChart'), {
             type: 'bar',
             data: {
                 labels: trendLabels,
                 datasets: [{
-                        label: 'Orders',
+                        label: 'Orders Count',
                         data: trendOrders,
                         backgroundColor: 'rgba(25, 135, 84, 0.7)',
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Revenue (₱)',
+                        label: 'Collected Revenue (₱)',
                         data: trendRevenue,
                         type: 'line',
                         borderColor: 'rgba(13, 110, 253, 0.9)',
                         backgroundColor: 'rgba(13, 110, 253, 0.1)',
                         tension: 0.3,
                         fill: true,
+                        yAxisID: 'y1'
+                    },
+                    {
+                        label: 'Expected Revenue (₱)',
+                        data: trendExpectedRevenue,
+                        type: 'line',
+                        borderColor: 'rgba(13, 202, 240, 0.9)', // Clear Cyan / Light-Blue line
+                        backgroundColor: 'transparent',
+                        borderDash: [5, 5], // Dotted/Dashed stroke formatting
+                        tension: 0.3,
+                        fill: false,
                         yAxisID: 'y1'
                     }
                 ]
@@ -392,7 +482,7 @@ $revenueComp       = getRevenueComparison($pdo);
                         position: 'left',
                         title: {
                             display: true,
-                            text: 'Orders'
+                            text: 'Orders Vol'
                         },
                         beginAtZero: true,
                         ticks: {
@@ -403,7 +493,7 @@ $revenueComp       = getRevenueComparison($pdo);
                         position: 'right',
                         title: {
                             display: true,
-                            text: '₱ Revenue'
+                            text: 'Value (₱)'
                         },
                         beginAtZero: true,
                         grid: {
@@ -425,10 +515,10 @@ $revenueComp       = getRevenueComparison($pdo);
         new Chart(document.getElementById('statusChart'), {
             type: 'doughnut',
             data: {
-                labels: ['Pending', 'Billed', 'Partial', 'Paid'],
+                labels: ['Pending', 'Unpaid', 'Partial', 'Paid'], // Billed renamed to Unpaid
                 datasets: [{
                     data: statusData,
-                    backgroundColor: ['#ffc107', '#0d6efd', '#fd7e14', '#198754'],
+                    backgroundColor: ['#ffc107', '#fd7e14', '#0d6efd', '#198754'],
                     hoverOffset: 10
                 }]
             },

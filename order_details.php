@@ -1,5 +1,6 @@
 <?php
 require_once 'db.php';
+require_once 'cron_process_recurring.php';
 header('Content-Type: application/json');
 
 $orderID = $_GET['orderID'] ?? null;

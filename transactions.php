@@ -24,8 +24,7 @@ $stmt = $pdo->prepare("
     INNER JOIN tblBillOrders ON tblBills.billID = tblBillOrders.billID
     INNER JOIN tblOrders ON tblBillOrders.orderID = tblOrders.orderID
     INNER JOIN tblusers ON tblBills.userID = tblusers.userID
-    WHERE (tblBills.status IN ('paid', 'unpaid', 'partial'))
-    AND tblOrders.status != 'pending'
+    WHERE tblOrders.status != 'pending'
     ORDER BY tblBills.billDate DESC
 ");
 $stmt->execute();
@@ -207,7 +206,7 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-primary" onclick="viewBill(<?php echo $b['billID']; ?>)">View</button>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewBill(<?php echo $b['billID']; ?>)">View</button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

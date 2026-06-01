@@ -54,101 +54,345 @@ function openCartModal(item) {
     new bootstrap.Modal(document.getElementById("addToCartModal")).show();
 }
 
+function validateBatchForm() {
+    const qty = document.getElementById("batchQuantityInput").value;
+    const expiry = document.getElementById("batchExpiryDateInput").value;
+    const harvest = document.getElementById("batchHarvestDateInput").value;
+
+    if (!qty || parseInt(qty, 10) < 1) {
+        alert("Please enter a valid quantity (minimum 1).");
+        return false;
+    }
+    if (!harvest) {
+        alert("Please select a harvest / received date.");
+        return false;
+    }
+    if (!expiry) {
+        alert("Please select an expiry date.");
+        return false;
+    }
+    if (expiry <= harvest) {
+        alert("Expiry date must be after the harvest date.");
+        return false;
+    }
+    return true;
+}
+
+function openAddBatch(itemID, itemName) {
+    document.getElementById("batch_itemID").value = itemID;
+    document.getElementById("batch_itemName_display").textContent =
+        "Adding batch for: " + itemName;
+    document.getElementById("batchQuantityInput").value = "";
+    document.getElementById("batchExpiryDateInput").value = "";
+    document.getElementById("batchHarvestDateInput").value = new Date()
+        .toISOString()
+        .slice(0, 10);
+    new bootstrap.Modal(document.getElementById("addBatchModal")).show();
+}
+
+let pendingDeleteForm = null; // Tracks which form row is awaiting removal approval
+
+function openBatchList(itemID, batches, itemName) {
+    const batchBody = document.getElementById("batchListBody");
+    const historyBody = document.getElementById("batchHistoryBody");
+    const batchLabel = document.getElementById("batchListLabel");
+
+    if (batchLabel) {
+        batchLabel.textContent = "Batches — " + itemName;
+    }
+    if (batchBody) {
+        batchBody.innerHTML = "";
+    }
+    if (historyBody) {
+        historyBody.innerHTML = "";
+    }
+
+    if (!batches || batches.length === 0) {
+        if (batchBody) {
+            batchBody.innerHTML =
+                '<p class="text-muted p-3">No active batches found for this product.</p>';
+        }
+        if (historyBody) {
+            historyBody.innerHTML =
+                '<p class="text-muted p-3">No historical batches found.</p>';
+        }
+        new bootstrap.Modal(document.getElementById("batchListModal")).show();
+        return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const activeBatches = batches.filter(
+        (b) => (b.batchStatus === 'active' || b.batchStatus === '') && Number(b.quantity) > 0,
+    );
+    const historyBatches = batches.filter(
+        (b) => b.batchStatus === 'archived' || Number(b.quantity) <= 0,
+    );
+
+    if (activeBatches.length === 0) {
+        if (batchBody) {
+            batchBody.innerHTML =
+                '<div class="alert alert-info text-center my-2 py-3">No active fresh stock batches found for this product.</div>';
+        }
+    } else {
+        let activeHtml = `
+            <div class="alert alert-info small p-2 mb-2">
+                <strong>FIFO Order:</strong> Batches are sorted oldest-harvest-first. Stock is consumed from Row 1 downward.
+            </div>
+            <table class="table table-sm table-striped align-middle small">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>#</th>
+                        <th>Batch Code</th>
+                        <th>Harvest Date</th>
+                        <th>Expiry Date</th>
+                        <th>Remaining</th>
+                        <th>Initial</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        let fifoFirst = true;
+        activeBatches.forEach((b, i) => {
+            const exp = new Date(b.expiryDate);
+            const diffDays = Math.round((exp - today) / 86400000);
+            let expiryClass = "";
+            let expiryLabel = b.expiryDate;
+
+            if (diffDays <= 0) {
+                expiryClass = "table-danger";
+                expiryLabel += " ⚠ EXPIRED";
+            } else if (diffDays <= 3) {
+                expiryClass = "table-danger";
+                expiryLabel += " (" + diffDays + "d left)";
+            } else if (diffDays <= 7) {
+                expiryClass = "table-warning";
+                expiryLabel += " (" + diffDays + "d left)";
+            }
+
+            const fifoBadge = fifoFirst
+                ? '<span class="badge bg-success ms-1">FIFO Next</span>'
+                : "";
+            fifoFirst = false;
+
+            activeHtml += `
+                <tr class="${expiryClass}">
+                    <td>${i + 1}</td>
+                    <td><code>${b.batchCode}</code> ${fifoBadge}</td>
+                    <td>${b.harvestDate}</td>
+                    <td>${expiryLabel}</td>
+                    <td><strong>${b.quantity}</strong></td>
+                    <td>${b.initialQty}</td>
+                    <td>
+                        <form method="POST" onsubmit="event.preventDefault(); pendingDeleteForm = this; new bootstrap.Modal(document.getElementById('deleteBatchConfirmModal')).show();">
+                            <input type="hidden" name="action" value="delete_batch">
+                            <input type="hidden" name="batchID" value="${b.batchID}">
+                            <input type="hidden" name="itemID" value="${b.itemID}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">Remove</button>
+                        </form>
+                    </td>
+                </tr>`;
+        });
+
+        activeHtml += "</tbody></table>";
+        if (batchBody) {
+            batchBody.innerHTML = activeHtml;
+        }
+    }
+
+    if (historyBatches.length === 0) {
+        if (historyBody) {
+            historyBody.innerHTML =
+                '<div class="alert alert-light text-muted text-center my-2 py-3">No historical or depleted batches recorded.</div>';
+        }
+    } else {
+        let historyHtml = `
+            <table class="table table-sm table-hover align-middle small">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Batch Code</th>
+                        <th>Harvest Date</th>
+                        <th>Expiry Date</th>
+                        <th>Initial Qty</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        historyBatches.forEach((b, i) => {
+            const isArchived = b.batchStatus === 'archived';
+            const statusLabel = isArchived
+                ? 'Archived'
+                : 'Depleted / Done';
+            const rowClass = isArchived ? 'table-secondary text-muted' : 'table-secondary text-muted';
+            historyHtml += `
+                <tr class="${rowClass}">
+                    <td>${i + 1}</td>
+                    <td><del><code>${b.batchCode}</code></del></td>
+                    <td>${b.harvestDate}</td>
+                    <td>${b.expiryDate}</td>
+                    <td>${b.initialQty}</td>
+                    <td><span class="badge bg-secondary">${statusLabel}</span></td>
+                </tr>`;
+        });
+
+        historyHtml += "</tbody></table>";
+        if (historyBody) {
+            historyBody.innerHTML = historyHtml;
+        }
+    }
+
+    const firstTabEl = document.querySelector(
+        '#batchModalTabs button[data-bs-target="#active-batches-pane"]',
+    );
+    if (firstTabEl) {
+        const tabInstance = bootstrap.Tab.getOrCreateInstance(firstTabEl);
+        tabInstance.show();
+    }
+
+    new bootstrap.Modal(document.getElementById("batchListModal")).show();
+}
+
 let currentOrderID = null;
 let currentBillID = null;
 let confirmModal = null;
 let billModal = null;
 
 function viewOrderDetails(orderID) {
-    currentOrderID = orderID;
+    // Use the current page endpoint for admin order details, otherwise fallback to hotel_orders.php
+    const endpoint =
+        window.location.pathname.endsWith("/orders.php") ||
+        window.location.pathname.endsWith("orders.php")
+            ? "orders.php"
+            : "hotel_orders.php";
 
-    fetch("order_details.php?orderID=" + orderID)
-        .then((res) => res.json())
-        .then((data) => {
-            if (data.error) {
-                alert("Error: " + data.error);
-                return;
-            }
-
-            const order = data.order;
-            const items = data.items;
-
-            document.getElementById("modal_orderID").textContent =
-                order.orderID;
-            document.getElementById("modal_orderHotel").textContent =
-                order.fullName;
-            document.getElementById("modal_orderDate").textContent = new Date(
-                order.orderDate,
-            ).toLocaleDateString("en-PH", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-            });
-            document.getElementById("modal_orderTotal").textContent =
-                "₱" +
-                parseFloat(order.totalAmount).toLocaleString("en-PH", {
-                    minimumFractionDigits: 2,
-                });
-
-            const statusColors = {
-                pending: "warning",
-                billed: "success",
-                paid: "info",
-                partial: "warning",
-            };
-            const color = statusColors[order.status] || "secondary";
-            document.getElementById("modal_orderStatus").innerHTML =
-                `<span class="badge bg-${color} text-dark">${order.status.toUpperCase()}</span>`;
-
-            // Show/hide complete order button (admin orders.php only)
-            const completeBtn = document.getElementById("completeOrderBtn");
-            if (completeBtn) {
-                completeBtn.classList.toggle(
-                    "d-none",
-                    order.status !== "pending",
+    fetch(`${endpoint}?action=get_order_details&orderID=${orderID}`)
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error(
+                    `HTTP ${response.status}: ${response.statusText}`,
                 );
             }
+            return response.json();
+        })
+        .then((data) => {
+            if (data.success) {
+                const order = data.order;
 
-            // Show/hide cancel button based on status (hotel_orders.php only)
-            const cancelBtn = document.getElementById("cancelOrderBtn");
-            if (cancelBtn) {
-                const cancelOrderID = document.getElementById(
+                // Store the order ID for later use when completing order
+                currentOrderID = order.orderID;
+
+                // Mapping traditional properties
+                document.getElementById("modal_orderID").textContent =
+                    order.orderID;
+                document.getElementById("modal_orderHotel").textContent =
+                    order.hotelName;
+                document.getElementById("modal_orderDate").textContent =
+                    order.orderDate;
+                document.getElementById("modal_orderStatus").textContent =
+                    order.status;
+                document.getElementById("modal_orderTotal").textContent =
+                    "₱" + parseFloat(order.totalAmount).toFixed(2);
+
+                document.getElementById("modal_currentOrderID").value =
+                    order.orderID;
+
+                // Only set cancel button if on hotel_orders page
+                const cancelBtn = document.getElementById(
                     "modal_cancelOrderID",
                 );
-                if (order.status === "pending") {
-                    cancelBtn.classList.remove("d-none");
-                    cancelOrderID.value = order.orderID;
-                } else {
-                    cancelBtn.classList.add("d-none");
+                if (cancelBtn) {
+                    cancelBtn.value = order.orderID;
                 }
+
+                // Injecting Cart Specific configuration sets
+                document.getElementById("modal_orderType").textContent =
+                    order.orderType || "Pickup";
+                document.getElementById("modal_deliveryTimeSlot").textContent =
+                    order.deliveryTimeSlot || "Not Specified";
+                document.getElementById("modal_estimatedDelivery").textContent =
+                    order.estimatedDelivery || "N/A";
+
+                // Displaying handling days safely
+                let dayDiff = parseInt(order.total_days);
+                document.getElementById("modal_daysDifference").textContent =
+                    !isNaN(dayDiff) && dayDiff >= 0 ? dayDiff : 0;
+
+                // Map order pattern (one-time vs recurring order templates)
+                const freqBadge = document.getElementById(
+                    "modal_orderFrequency",
+                );
+                if (order.recurringOrderID) {
+                    freqBadge.textContent = "Recurring Order";
+                    freqBadge.className = "badge bg-success fs-6";
+                } else {
+                    freqBadge.textContent = "One-time Order";
+                    freqBadge.className = "badge bg-info text-dark fs-6";
+                }
+
+                // Loop render items list rows
+                let itemsHtml = "";
+                data.items.forEach((item) => {
+                    let subtotal =
+                        parseFloat(item.price) * parseInt(item.quantity);
+                    itemsHtml += `
+                            <tr>
+                                <td>${item.itemName}</td>
+                                <td>₱${parseFloat(item.price).toFixed(2)}</td>
+                                <td>${item.quantity}</td>
+                                <td>₱${subtotal.toFixed(2)}</td>
+                            </tr>
+                        `;
+                });
+                document.getElementById("modal_orderItems").innerHTML =
+                    itemsHtml;
+
+                // Check if we're on admin page (orders.php) or user page (hotel_orders.php)
+                const isAdminPage =
+                    window.location.pathname.endsWith("/orders.php") ||
+                    window.location.pathname.endsWith("orders.php");
+
+                // Show/hide buttons based on page and order status
+                const completeOrderBtn =
+                    document.getElementById("completeOrderBtn");
+                const viewBillBtn = document.getElementById("viewBillBtn");
+                const cancelOrderBtn =
+                    document.getElementById("cancelOrderBtn");
+
+                if (isAdminPage && completeOrderBtn && viewBillBtn) {
+                    // Admin page button handling
+                    if (order.status === "billed" || order.status === "paid") {
+                        completeOrderBtn.classList.add("d-none");
+                        viewBillBtn.classList.remove("d-none");
+                        if (order.billID) {
+                            viewBillBtn.onclick = () => viewBill(order.billID);
+                        }
+                    } else {
+                        completeOrderBtn.classList.remove("d-none");
+                        viewBillBtn.classList.add("d-none");
+                    }
+                } else if (!isAdminPage && cancelOrderBtn) {
+                    // User page button handling
+                    if (cancelOrderBtn) {
+                        cancelOrderBtn.value = order.orderID;
+                    }
+                }
+
+                // Programmatically trigger Bootstrap modal structure view
+                let targetModal = new bootstrap.Modal(
+                    document.getElementById("orderDetailsModal"),
+                );
+                targetModal.show();
+            } else {
+                alert("Error: Could not retrieve target order records.");
             }
-
-            // Show orderType badge only on hotel page
-            const orderTypeEl = document.getElementById("modal_orderType");
-            if (orderTypeEl) {
-                orderTypeEl.textContent = order.orderType || "N/A";
-            }
-
-            // Populate items
-            const tbody = document.getElementById("modal_orderItems");
-            tbody.innerHTML = "";
-            items.forEach((item) => {
-                const subtotal = item.price * item.quantity;
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${item.itemName}</td>
-                        <td>₱${parseFloat(item.price).toFixed(2)} / ${item.itemUnit}</td>
-                        <td>${item.quantity}</td>
-                        <td>₱${subtotal.toFixed(2)}</td>
-                    </tr>
-                `;
-            });
-
-            new bootstrap.Modal(
-                document.getElementById("orderDetailsModal"),
-            ).show();
         })
-        .catch((err) => console.error("Fetch error:", err));
+        .catch((error) => {
+            console.error("Fetch Exception Error:", error);
+            alert("An unexpected error occurred while loading details.");
+        });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -167,30 +411,43 @@ document.addEventListener("DOMContentLoaded", () => {
             processBillOrder();
         });
     }
+
+    const batchDeleteConfirmBtn = document.getElementById(
+        "executeBatchDeleteBtn",
+    );
+    if (batchDeleteConfirmBtn) {
+        batchDeleteConfirmBtn.addEventListener("click", () => {
+            if (pendingDeleteForm) {
+                pendingDeleteForm.submit();
+            }
+        });
+    }
 });
 
 function completeOrder() {
-    if (!currentOrderID) return;
+    if (!currentOrderID) {
+        alert("No order selected");
+        return;
+    }
 
     // Show order ID in confirmation modal
     document.getElementById("confirm_orderID").textContent = currentOrderID;
 
-    // Hide order details modal first, then show confirm modal
+    // Hide order details modal and show confirm modal
     const orderModalEl = document.getElementById("orderDetailsModal");
     const orderModal = bootstrap.Modal.getInstance(orderModalEl);
 
-    orderModalEl.addEventListener(
-        "hidden.bs.modal",
-        () => {
-            confirmModal = new bootstrap.Modal(
-                document.getElementById("confirmCompleteModal"),
-            );
-            confirmModal.show();
-        },
-        { once: true },
-    );
+    if (orderModal) {
+        orderModal.hide();
+    }
 
-    orderModal.hide();
+    // Show the confirmation modal after a brief delay to ensure transition
+    setTimeout(() => {
+        confirmModal = new bootstrap.Modal(
+            document.getElementById("confirmCompleteModal"),
+        );
+        confirmModal.show();
+    }, 300);
 }
 
 function processBillOrder() {
@@ -309,6 +566,15 @@ function viewBill(billID) {
                 penaltyRow.classList.remove("d-none");
             } else {
                 penaltyRow.classList.add("d-none");
+            }
+            if (
+                bootstrap.Modal.getInstance(
+                    document.getElementById("orderDetailsModal"),
+                )
+            ) {
+                bootstrap.Modal.getInstance(
+                    document.getElementById("orderDetailsModal"),
+                ).hide();
             }
 
             new bootstrap.Modal(
