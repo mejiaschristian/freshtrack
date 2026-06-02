@@ -86,55 +86,67 @@ $revenueComp       = getRevenueComparison($pdo);
         <!-- Stats Cards -->
         <div class="row">
             <div class="col-md-4 mb-3">
-                <div class="card border-left-success">
-                    <div class="card-body">
-                        <h6 class="card-title text-muted">Total Orders</h6>
-                        <h3 class="card-text text-success"><?php echo $stats['totalOrders']; ?></h3>
+                <a href="orders.php" class="text-decoration-none">
+                    <div class="card dashboard-card border-left-success">
+                        <div class="card-body">
+                            <h6 class="card-title text-muted">Total Orders</h6>
+                            <h3 class="card-text text-success"><?php echo $stats['totalOrders']; ?></h3>
+                        </div>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="col-md-4 mb-3">
-                <div class="card border-left-warning">
-                    <div class="card-body">
-                        <h6 class="card-title text-muted">Pending Orders</h6>
-                        <h3 class="card-text text-warning"><?php echo $stats['pendingOrders']; ?></h3>
+                <a href="orders.php" class="text-decoration-none">
+                    <div class="card dashboard-card border-left-warning">
+                        <div class="card-body">
+                            <h6 class="card-title text-muted">Pending Orders</h6>
+                            <h3 class="card-text text-warning"><?php echo $stats['pendingOrders']; ?></h3>
+                        </div>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="col-md-4 mb-3">
-                <div class="card border-left-info">
-                    <div class="card-body">
-                        <h6 class="card-title text-muted">Total Items</h6>
-                        <h3 class="card-text text-info"><?php echo $stats['totalItems']; ?></h3>
+                <a href="inventory.php" class="text-decoration-none">
+                    <div class="card dashboard-card border-left-info">
+                        <div class="card-body">
+                            <h6 class="card-title text-muted">Total Items</h6>
+                            <h3 class="card-text text-info"><?php echo $stats['totalItems']; ?></h3>
+                        </div>
                     </div>
-                </div>
+                </a>
             </div>
         </div>
 
         <div class="row mb-4">
             <div class="col-md-4 mb-3">
-                <div class="card border-left-danger">
-                    <div class="card-body">
-                        <h6 class="card-title text-muted">Low Stock Items</h6>
-                        <h3 class="card-text text-danger"><?php echo $stats['lowStockCount']; ?></h3>
+                <a href="inventory.php" class="text-decoration-none">
+                    <div class="card dashboard-card border-left-danger">
+                        <div class="card-body">
+                            <h6 class="card-title text-muted">Low Stock Items</h6>
+                            <h3 class="card-text text-danger"><?php echo $stats['lowStockCount']; ?></h3>
+                        </div>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="col-md-4 mb-3">
-                <div class="card border-left-success">
-                    <div class="card-body">
-                        <h6 class="card-title text-muted">Total Users</h6>
-                        <h3 class="card-text text-success"><?php echo $stats['totalUsers']; ?></h3>
+                <a href="users.php" class="text-decoration-none">
+                    <div class="card dashboard-card border-left-success">
+                        <div class="card-body">
+                            <h6 class="card-title text-muted">Total Users</h6>
+                            <h3 class="card-text text-success"><?php echo $stats['totalUsers']; ?></h3>
+                        </div>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="col-md-4 mb-3">
-                <div class="card border-left-primary">
-                    <div class="card-body">
-                        <h6 class="card-title text-muted">Inventory Value</h6>
-                        <h3 class="card-text text-primary">₱<?php echo number_format($stats['inventoryValue'], 2); ?></h3>
+                <a href="inventory.php" class="text-decoration-none">
+                    <div class="card dashboard-card border-left-primary">
+                        <div class="card-body">
+                            <h6 class="card-title text-muted">Inventory Value</h6>
+                            <h3 class="card-text text-primary">₱<?php echo number_format($stats['inventoryValue'], 2); ?></h3>
+                        </div>
                     </div>
-                </div>
+                </a>
             </div>
         </div>
 
