@@ -1,18 +1,22 @@
 function loadEditModal(item) {
-    document.getElementById("itemID").value = item.itemID;
-    document.getElementById("edit_itemName").value = item.itemName;
-    document.getElementById("edit_itemDescription").value =
-        item.itemDescription;
-    document.getElementById("edit_categoryID").value = item.categoryID;
-    document.getElementById("edit_itemPrice").value = item.itemPrice;
-    document.getElementById("edit_itemQuantity").value = item.itemQuantity;
-    document.getElementById("edit_itemUnit").value = item.itemUnit;
-    document.getElementById("edit_itemExpiryDate").value = item.itemExpiryDate;
-    document.getElementById("edit_existingImage").value = item.itemImage ?? ""; // preserve existing image
-    document.getElementById("current_srp").value = 0;
-    document.getElementById("srpDisplay").textContent = "";
+    const el = (id) => document.getElementById(id);
 
-    new bootstrap.Modal(document.getElementById("editItemModal")).show();
+    if (el("itemID")) el("itemID").value = item.itemID;
+    if (el("edit_itemName")) el("edit_itemName").value = item.itemName;
+    if (el("edit_itemDescription"))
+        el("edit_itemDescription").value = item.itemDescription;
+    if (el("edit_categoryID")) el("edit_categoryID").value = item.categoryID;
+    if (el("edit_itemPrice")) el("edit_itemPrice").value = item.itemPrice;
+    // quantity and expiry are managed via batches; only set if field exists
+    if (el("edit_itemQuantity")) el("edit_itemQuantity").value = item.itemQuantity;
+    if (el("edit_itemUnit")) el("edit_itemUnit").value = item.itemUnit;
+    if (el("edit_itemExpiryDate")) el("edit_itemExpiryDate").value = item.itemExpiryDate;
+    if (el("edit_existingImage")) el("edit_existingImage").value = item.itemImage ?? ""; // preserve existing image
+    if (el("current_srp")) el("current_srp").value = 0;
+    if (el("srpDisplay")) el("srpDisplay").textContent = "";
+
+    const modalEl = document.getElementById("editItemModal");
+    if (modalEl) new bootstrap.Modal(modalEl).show();
 }
 
 function setDeleteItemID(itemID, itemName) {
@@ -123,10 +127,12 @@ function openBatchList(itemID, batches, itemName) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const activeBatches = batches.filter(
-        (b) => (b.batchStatus === 'active' || b.batchStatus === '') && Number(b.quantity) > 0,
+        (b) =>
+            (b.batchStatus === "active" || b.batchStatus === "") &&
+            Number(b.quantity) > 0,
     );
     const historyBatches = batches.filter(
-        (b) => b.batchStatus === 'archived' || Number(b.quantity) <= 0,
+        (b) => b.batchStatus === "archived" || Number(b.quantity) <= 0,
     );
 
     if (activeBatches.length === 0) {
@@ -222,11 +228,11 @@ function openBatchList(itemID, batches, itemName) {
                 <tbody>`;
 
         historyBatches.forEach((b, i) => {
-            const isArchived = b.batchStatus === 'archived';
-            const statusLabel = isArchived
-                ? 'Archived'
-                : 'Depleted / Done';
-            const rowClass = isArchived ? 'table-secondary text-muted' : 'table-secondary text-muted';
+            const isArchived = b.batchStatus === "archived";
+            const statusLabel = isArchived ? "Archived" : "Depleted / Done";
+            const rowClass = isArchived
+                ? "table-secondary text-muted"
+                : "table-secondary text-muted";
             historyHtml += `
                 <tr class="${rowClass}">
                     <td>${i + 1}</td>
@@ -291,8 +297,9 @@ function viewOrderDetails(orderID) {
                     order.hotelName;
                 document.getElementById("modal_orderDate").textContent =
                     order.orderDate;
+                const displayStatus = (order.status === 'billed') ? 'unpaid' : order.status;
                 document.getElementById("modal_orderStatus").textContent =
-                    order.status;
+                    displayStatus;
                 document.getElementById("modal_orderTotal").textContent =
                     "₱" + parseFloat(order.totalAmount).toFixed(2);
 
@@ -713,11 +720,13 @@ function showCheckoutConfirm() {
 }
 
 // Handle confirm checkout button
-document
-    .getElementById("confirmCheckoutBtn")
-    .addEventListener("click", function () {
-        document.getElementById("checkoutForm").submit();
+const confirmCheckoutBtn = document.getElementById("confirmCheckoutBtn");
+if (confirmCheckoutBtn) {
+    confirmCheckoutBtn.addEventListener("click", function () {
+        const form = document.getElementById("checkoutForm");
+        if (form) form.submit();
     });
+}
 
 function openEditUserModal(user) {
     const modalEl = document.getElementById("editUserModal");
@@ -806,11 +815,14 @@ function calculateSRP() {
         srp = unitPrice * 1.2; // 20% markup for dairy products
     }
 
-    document.getElementById("current_srp").value = srp;
-    document.getElementById("srpDisplay").textContent =
-        "Suggested Retail Price (SRP): ₱ " +
-        srp.toLocaleString("en-US", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        });
+    const cur = document.getElementById("current_srp");
+    if (cur) cur.value = srp;
+    const disp = document.getElementById("srpDisplay");
+    if (disp)
+        disp.textContent =
+            "Suggested Retail Price (SRP): ₱ " +
+            srp.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            });
 }

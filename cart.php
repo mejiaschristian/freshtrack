@@ -157,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
 
                 $pdo->prepare("
                     UPDATE tblItems 
-                    SET itemQuantity = :qty, itemExpiryDate = :exp, reorderLevel = reorderLevel + 1 
+                    SET itemQuantity = :qty, itemExpiryDate = :exp
                     WHERE itemID = :itemID
                 ")->execute([
                     'qty'    => $sync['totalQty'],

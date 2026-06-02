@@ -46,6 +46,15 @@ try {
     $pdo->prepare("UPDATE tblOrders SET status = 'billed' WHERE orderID = :orderID")
         ->execute(['orderID' => $orderID]);
 
+    // Increment reorderLevel for items in this order
+    $pdo->prepare("
+        UPDATE tblItems
+        SET reorderLevel = reorderLevel + 1
+        WHERE itemID IN (
+            SELECT itemID FROM tblOrderItems WHERE orderID = :orderID
+        )
+    ")->execute(['orderID' => $orderID]);
+
     // Get order items
     $stmt = $pdo->prepare("
     SELECT tblOrderItems.*, tblItems.itemName, tblItems.itemUnit

@@ -25,7 +25,7 @@ function getItemsByCategory($pdo, $categoryID)
 function getLowStockItems($pdo)
 {
     try {
-        $stmt = $pdo->query("SELECT i.*, c.categoryName FROM tblitems i JOIN tblcategories c ON i.categoryID = c.categoryID WHERE i.itemQuantity <= i.reorderLevel ORDER BY i.itemQuantity ASC");
+        $stmt = $pdo->query("SELECT i.*, c.categoryName FROM tblitems i JOIN tblcategories c ON i.categoryID = c.categoryID WHERE i.itemQuantity < 10 OR i.itemQuantity <= i.reorderLevel ORDER BY i.itemQuantity ASC");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         return [];

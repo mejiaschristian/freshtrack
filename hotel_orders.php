@@ -300,7 +300,7 @@ $billID = $_GET['billID'] ?? null;
                         </div>
                         <div class="col-md-6 text-md-end mt-2 mt-md-0">
                             <p class="mb-1"><strong>Date:</strong> <span id="modal_orderDate"></span></p>
-                            <p class="mb-1"><strong>Status:</strong> <span class="badge bg-warning text-uppercase text-black" id="modal_orderStatus"></span></p>
+                            <p class="mb-1"><strong>Status:</strong> <span class="text-uppercase" id="modal_orderStatus"></span></p>
                         </div>
                     </div>
 
@@ -417,13 +417,15 @@ $billID = $_GET['billID'] ?? null;
 
                             if (!empty($billedOrders)) {
                                 foreach ($billedOrders as $order) {
+                                    $displayStatus = ($order['status'] === 'billed') ? 'unpaid' : $order['status'];
+                                    $badgeClass = ($displayStatus === 'paid') ? 'bg-success' : 'bg-danger';
                                     echo '<div class="order-card card border-left-success mb-3">';
                                     echo '  <div class="card-body">';
                                     echo '    <h5 class="card-title">Order #' . htmlspecialchars($order['orderID']) . '</h5>';
                                     echo '    <p class="card-text"><strong>Hotel:</strong> ' . htmlspecialchars($order['hotelName'] ?? 'N/A') . '</p>';
                                     echo '    <p class="card-text"><strong>Date:</strong> ' . date('M d, Y', strtotime($order['orderDate'])) . '</p>';
                                     echo '    <p class="card-text"><strong>Total:</strong> ₱' . number_format($order['totalAmount'], 2) . '</p>';
-                                    echo '    <p class="card-text text-uppercase"><span class="badge bg-success"> ' . htmlspecialchars($order['status'] ?? 'N/A') . '</span></p>';
+                                    echo '    <p class="card-text text-uppercase"><span class="badge ' . $badgeClass . '">' . htmlspecialchars($displayStatus) . '</span></p>';
                                     echo '    <button class="btn btn-primary me-2" onclick="viewOrderDetails(' . $order['orderID'] . ')">View Details</button>';
                                     if (!empty($order['billID'])) {
                                         echo '    <a href="bill.php?billID=' . htmlspecialchars($order['billID']) . '" class="btn btn-outline-success">View Bill</a>';

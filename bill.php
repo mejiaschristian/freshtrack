@@ -149,7 +149,7 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </nav>
     </header>
 
-    <main class="container-lg mt-3">
+    <main class="container-lg mt-5">
 
         <?php if ($billID && $bill): ?>
             <!-- ===== SINGLE BILL VIEW ===== -->

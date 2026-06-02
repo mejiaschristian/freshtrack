@@ -156,7 +156,7 @@ $revenueComp       = getRevenueComparison($pdo);
                 <div style="max-height: 150px; overflow-y: auto; padding-right: 10px;">
                     <ul class="mb-0">
                         <?php foreach ($expiringItems as $batch): ?>
-                            <li>Batch <?php echo htmlspecialchars($batch['batchCode'] ?? $batch['batchcode'] ?? 'N/A'); ?>: <?php echo htmlspecialchars($batch['itemName'] ?? $batch['itemname'] ?? 'Item'); ?> (Qty: <?php echo $batch['quantity']; ?>) - Expires on <?php echo date('M d, Y', strtotime($batch['expiryDate'] ?? $batch['expirydate'])); ?></li>
+                            <li><?php echo htmlspecialchars($batch['batchCode'] ?? $batch['batchcode'] ?? 'N/A'); ?>: <?php echo htmlspecialchars($batch['itemName'] ?? $batch['itemname'] ?? 'Item'); ?> (Qty: <?php echo $batch['quantity']; ?>) - Expires on <?php echo date('M d, Y', strtotime($batch['expiryDate'] ?? $batch['expirydate'])); ?></li>
                         <?php endforeach; ?>
                     </ul>
                 </div>
@@ -200,8 +200,9 @@ $revenueComp       = getRevenueComparison($pdo);
                                     <td><?php echo htmlspecialchars($order['customerName']); ?></td>
                                     <td>₱<?php echo number_format($order['totalAmount'], 2); ?></td>
                                     <td>
+                                        <?php $displayStatus = ($currentStatus === 'billed') ? 'unpaid' : $currentStatus; ?>
                                         <span class="badge <?php echo $badgeClass; ?>">
-                                            <?php echo strtoupper(htmlspecialchars($currentStatus)); ?>
+                                            <?php echo strtoupper(htmlspecialchars($displayStatus)); ?>
                                         </span>
                                     </td>
                                     <td><?php echo date('M d, Y', strtotime($order['orderDate'])); ?></td>
