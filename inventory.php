@@ -700,6 +700,7 @@ $categories = $catStmt->fetchAll(PDO::FETCH_ASSOC);
                                 <thead class="table-secondary">
                                     <tr>
                                         <th>ID</th>
+                                        <th>Image</th>
                                         <th>Name</th>
                                         <th>Category</th>
                                         <th>Price</th>
@@ -735,6 +736,9 @@ $categories = $catStmt->fetchAll(PDO::FETCH_ASSOC);
                                         ?>
                                             <tr class="<?php echo $rowClass; ?>">
                                                 <td><?php echo $row['itemID']; ?></td>
+                                                <td>
+                                                    <img src="<?php echo htmlspecialchars($row['itemImage']); ?>" alt="<?php echo htmlspecialchars($row['itemName']); ?>" class="img-thumbnail" style="max-width: 50px; max-height: 50px;">
+                                                </td>
                                                 <td>
                                                     <strong><?php echo htmlspecialchars($row['itemName']); ?></strong>
                                                     <div class="small text-muted"><?php echo htmlspecialchars(substr($row['itemDescription'], 0, 40)); ?>…</div>
