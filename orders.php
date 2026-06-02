@@ -5,6 +5,18 @@ require_once 'db.php';
 // Include the automation script logic to process operations seamlessly
 require_once 'cron_process_recurring.php';
 
+if (isset($_GET['action']) && $_GET['action'] === 'get_order_details') {
+    header('Content-Type: application/json');
+    if (!isLoggedIn()) {
+        echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+        exit();
+    }
+    if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'staff') {
+        echo json_encode(['success' => false, 'error' => 'Forbidden']);
+        exit();
+    }
+}
+
 // Check if user is logged in and is admin or staff
 if (!isLoggedIn()) {
     header('Location: index.php');

@@ -15,11 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = register($email, $fullName, $password); // only called once
 
         if ($result['success']) {
-            if (isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true) {
-                header('Location: dashboard.php');
-            } else {
-                header('Location: index.php');
-            }
+            header('Location: index.php');
             exit();
         } else {
             $_SESSION['register_error'] = $result['message'];

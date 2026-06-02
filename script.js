@@ -8,10 +8,13 @@ function loadEditModal(item) {
     if (el("edit_categoryID")) el("edit_categoryID").value = item.categoryID;
     if (el("edit_itemPrice")) el("edit_itemPrice").value = item.itemPrice;
     // quantity and expiry are managed via batches; only set if field exists
-    if (el("edit_itemQuantity")) el("edit_itemQuantity").value = item.itemQuantity;
+    if (el("edit_itemQuantity"))
+        el("edit_itemQuantity").value = item.itemQuantity;
     if (el("edit_itemUnit")) el("edit_itemUnit").value = item.itemUnit;
-    if (el("edit_itemExpiryDate")) el("edit_itemExpiryDate").value = item.itemExpiryDate;
-    if (el("edit_existingImage")) el("edit_existingImage").value = item.itemImage ?? ""; // preserve existing image
+    if (el("edit_itemExpiryDate"))
+        el("edit_itemExpiryDate").value = item.itemExpiryDate;
+    if (el("edit_existingImage"))
+        el("edit_existingImage").value = item.itemImage ?? ""; // preserve existing image
     if (el("current_srp")) el("current_srp").value = 0;
     if (el("srpDisplay")) el("srpDisplay").textContent = "";
 
@@ -267,18 +270,17 @@ let confirmModal = null;
 let billModal = null;
 
 function viewOrderDetails(orderID) {
-    // Use the current page endpoint for admin order details, otherwise fallback to hotel_orders.php
+    // Determine endpoint based on the current page filename.
+    const pageName = window.location.pathname.split("/").pop();
     const endpoint =
-        window.location.pathname.endsWith("/orders.php") ||
-        window.location.pathname.endsWith("orders.php")
-            ? "orders.php"
-            : "hotel_orders.php";
+        pageName === "orders.php" ? "orders.php" : "hotel_orders.php";
 
     fetch(`${endpoint}?action=get_order_details&orderID=${orderID}`)
-        .then((response) => {
+        .then(async (response) => {
             if (!response.ok) {
+                const text = await response.text();
                 throw new Error(
-                    `HTTP ${response.status}: ${response.statusText}`,
+                    `HTTP ${response.status}: ${response.statusText} - ${text}`,
                 );
             }
             return response.json();
@@ -297,7 +299,8 @@ function viewOrderDetails(orderID) {
                     order.hotelName;
                 document.getElementById("modal_orderDate").textContent =
                     order.orderDate;
-                const displayStatus = (order.status === 'billed') ? 'unpaid' : order.status;
+                const displayStatus =
+                    order.status === "billed" ? "unpaid" : order.status;
                 document.getElementById("modal_orderStatus").textContent =
                     displayStatus;
                 document.getElementById("modal_orderTotal").textContent =
@@ -393,12 +396,17 @@ function viewOrderDetails(orderID) {
                 );
                 targetModal.show();
             } else {
-                alert("Error: Could not retrieve target order records.");
+                const errorText =
+                    data.error || "Could not retrieve target order records.";
+                alert("Error: " + errorText);
             }
         })
         .catch((error) => {
             console.error("Fetch Exception Error:", error);
-            alert("An unexpected error occurred while loading details.");
+            alert(
+                "An unexpected error occurred while loading details: " +
+                    error.message,
+            );
         });
 }
 
