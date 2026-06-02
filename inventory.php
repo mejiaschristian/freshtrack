@@ -3,8 +3,14 @@ session_start();
 require 'auth.php';
 require 'db.php';
 
+// Check if user is logged in and is admin or staff
 if (!isLoggedIn()) {
     header('Location: index.php');
+    exit();
+}
+
+if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'staff') {
+    header('Location: dashboard.php');
     exit();
 }
 

@@ -8,6 +8,11 @@ if (!isLoggedIn()) {
     exit();
 }
 
+if ($_SESSION['role'] !== "hotel") {
+    header('Location: dashboard.php');
+    exit();
+}
+
 $search   = trim($_GET['search'] ?? '');
 $category = $_GET['category'] ?? '';
 
@@ -84,37 +89,12 @@ $successQty  = $_GET['success_qty']  ?? '';
     <title>FreshTrack - Store</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
         rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
         crossorigin="anonymous" />
     <link rel="stylesheet" href="style.css" />
-    <style>
-        .expiry-badge {
-            font-size: 0.65rem;
-            padding: 2px 5px;
-            border-radius: 4px;
-            display: inline-block;
-        }
-
-        .expiry-ok {
-            background: #d1fae5;
-            color: #065f46;
-            border: 1px solid #6ee7b7;
-        }
-
-        .expiry-soon {
-            background: #fef9c3;
-            color: #92400e;
-            border: 1px solid #fde68a;
-        }
-
-        .expiry-crit {
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fca5a5;
-        }
-    </style>
 </head>
 
 <body>

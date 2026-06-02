@@ -7,6 +7,12 @@ if (!isLoggedIn()) {
     header('Location: index.php');
     exit();
 }
+
+if ($_SESSION['role'] !== "hotel") {
+    header('Location: dashboard.php');
+    exit();
+}
+
 ?>
 
 <!doctype html>

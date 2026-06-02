@@ -50,8 +50,13 @@ function login($email, $password)
         $_SESSION['username'] = $user['fullName'];
         $_SESSION['email'] = $user['email'];
         $_SESSION['role'] = $user['role'];
+        $_SESSION['is_admin'] = false;
+        $_SESSION['is_staff'] = false;
         if ($user['role'] === 'admin') {
             $_SESSION['is_admin'] = true;
+        }
+        if ($user['role'] === 'staff') {
+            $_SESSION['is_staff'] = true;
         }
         $_SESSION['logged_in'] = true;
 

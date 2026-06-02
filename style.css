@@ -19,6 +19,22 @@
     font-family: Poppins, sans-serif;
 }
 
+body {
+    background-color: #ffffff; /* your base color */
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url("bg.avif");
+    background-size: cover;
+    background-position: center;
+    opacity: 0.2;
+    pointer-events: none;
+    z-index: -3;
+}
+
 /* Login Page Styles */
 .login-body {
     min-height: 100vh;
@@ -637,6 +653,31 @@
 }
 
 .batch-expiry-crit {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+
+.expiry-badge {
+    font-size: 0.65rem;
+    padding: 2px 5px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.expiry-ok {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+}
+
+.expiry-soon {
+    background: #fef9c3;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+
+.expiry-crit {
     background: #fee2e2;
     color: #991b1b;
     border: 1px solid #fca5a5;

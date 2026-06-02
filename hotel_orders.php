@@ -8,6 +8,12 @@ if (!isLoggedIn()) {
     header('Location: index.php');
     exit();
 }
+
+if ($_SESSION['role'] !== "hotel") {
+    header('Location: dashboard.php');
+    exit();
+}
+
 // Helper function to sync cached values from batches to tblItems
 function syncItemFromBatchesLocal($pdo, $itemID)
 {

@@ -4,9 +4,15 @@ require_once 'auth.php';
 require_once 'db.php';
 // Include the automation script logic to process operations seamlessly
 require_once 'cron_process_recurring.php';
-// Check if user is logged in
+
+// Check if user is logged in and is admin or staff
 if (!isLoggedIn()) {
     header('Location: index.php');
+    exit();
+}
+
+if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'staff') {
+    header('Location: dashboard.php');
     exit();
 }
 

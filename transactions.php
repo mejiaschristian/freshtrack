@@ -8,9 +8,14 @@ if (!file_exists('get_bill_details.php')) {
     echo "<!-- WARNING: get_bill_details.php NOT FOUND in " . getcwd() . " -->";
 }
 
-// Check if user is logged in
+// Check if user is logged in and is admin or staff
 if (!isLoggedIn()) {
     header('Location: index.php');
+    exit();
+}
+
+if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'staff') {
+    header('Location: dashboard.php');
     exit();
 }
 

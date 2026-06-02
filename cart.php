@@ -9,6 +9,11 @@ if (!isLoggedIn()) {
     exit();
 }
 
+if ($_SESSION['role'] !== "hotel") {
+    header('Location: dashboard.php');
+    exit();
+}
+
 $userID = $_SESSION['user_id'];
 $message = "";
 $messageType = "";
