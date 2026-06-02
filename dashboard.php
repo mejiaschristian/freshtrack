@@ -239,59 +239,64 @@ $revenueComp       = getRevenueComparison($pdo);
                                 $arrowR    = $diffR >= 0 ? '▲' : '▼';
                                 $colorR    = $diffR >= 0 ? 'success' : 'danger';
                                 ?>
-                                <div class="mb-4 border-bottom pb-3">
-                                    <div class="small fw-semibold text-muted text-center text-uppercase mb-2">Collected Cash Revenue (Paid / Partial)</div>
-                                    <div class="d-flex align-items-center justify-content-center text-center gap-4 flex-wrap">
-                                        <div>
-                                            <div class="text-muted small">This Week</div>
-                                            <div class="fs-5 fw-bold text-success">₱<?php echo number_format($thisWeekR, 2); ?></div>
-                                        </div>
-                                        <div>
-                                            <div class="text-muted small">Last Week</div>
-                                            <div class="fs-5 fw-bold text-secondary">₱<?php echo number_format($lastWeekR, 2); ?></div>
-                                        </div>
-                                        <div>
-                                            <div class="text-muted small">Trend</div>
-                                            <div class="fs-6 fw-bold text-<?php echo $colorR; ?>">
-                                                <?php echo $arrowR; ?> ₱<?php echo number_format(abs($diffR), 2); ?>
-                                                <?php if ($pctR !== null): ?>
-                                                    <span>(<?php echo ($diffR >= 0 ? '+' : ''); ?><?php echo $pctR; ?>%)</span>
-                                                <?php endif; ?>
+                                <div class="row justify-content-center g-0 mb-3">
+                                    <div class="col-md-2"></div>
+                                    <div class="col-md-4 mb-4 pb-3">
+                                        <div class="small fw-semibold text-muted text-center text-uppercase mb-2">Collected Cash Revenue (Paid / Partial)</div>
+                                        <div class="d-flex align-items-center justify-content-center text-center gap-4 flex-wrap">
+                                            <div>
+                                                <div class="text-muted small">This Week</div>
+                                                <div class="fs-5 fw-bold text-success">₱<?php echo number_format($thisWeekR, 2); ?></div>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small">Last Week</div>
+                                                <div class="fs-5 fw-bold text-secondary">₱<?php echo number_format($lastWeekR, 2); ?></div>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small">Trend</div>
+                                                <div class="fs-6 fw-bold text-<?php echo $colorR; ?>">
+                                                    <?php echo $arrowR; ?> ₱<?php echo number_format(abs($diffR), 2); ?>
+                                                    <?php if ($pctR !== null): ?>
+                                                        <span>(<?php echo ($diffR >= 0 ? '+' : ''); ?><?php echo $pctR; ?>%)</span>
+                                                    <?php endif; ?>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+
+                                    <?php
+                                    $thisWeekE = $revenueComp['thisWeekExpected'] ?? 0;
+                                    $lastWeekE = $revenueComp['lastWeekExpected'] ?? 0;
+                                    $diffE     = $thisWeekE - $lastWeekE;
+                                    $pctE      = $lastWeekE > 0 ? round(($diffE / $lastWeekE) * 100, 1) : null;
+                                    $arrowE    = $diffE >= 0 ? '▲' : '▼';
+                                    $colorE    = $diffE >= 0 ? 'info' : 'warning text-dark';
+                                    ?>
+                                    <div class="col-md-4">
+                                        <div class="small fw-semibold text-muted text-center text-uppercase mb-2">Expected Outbound Revenue (Unpaid / Pending)</div>
+                                        <div class="d-flex align-items-center justify-content-center text-center gap-4 flex-wrap">
+                                            <div>
+                                                <div class="text-muted small">This Week</div>
+                                                <div class="fs-5 fw-bold text-info">₱<?php echo number_format($thisWeekE, 2); ?></div>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small">Last Week</div>
+                                                <div class="fs-5 fw-bold text-secondary">₱<?php echo number_format($lastWeekE, 2); ?></div>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small">Trend</div>
+                                                <div class="fs-6 fw-bold text-<?php echo $diffE >= 0 ? 'success' : 'danger'; ?>">
+                                                    <?php echo $arrowE; ?> ₱<?php echo number_format(abs($diffE), 2); ?>
+                                                    <?php if ($pctE !== null): ?>
+                                                        <span>(<?php echo ($diffE >= 0 ? '+' : ''); ?><?php echo $pctE; ?>%)</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2"></div>
                                 </div>
 
-                                <?php
-                                $thisWeekE = $revenueComp['thisWeekExpected'] ?? 0;
-                                $lastWeekE = $revenueComp['lastWeekExpected'] ?? 0;
-                                $diffE     = $thisWeekE - $lastWeekE;
-                                $pctE      = $lastWeekE > 0 ? round(($diffE / $lastWeekE) * 100, 1) : null;
-                                $arrowE    = $diffE >= 0 ? '▲' : '▼';
-                                $colorE    = $diffE >= 0 ? 'info' : 'warning text-dark';
-                                ?>
-                                <div>
-                                    <div class="small fw-semibold text-muted text-center text-uppercase mb-2">Expected Outbound Revenue (Unpaid / Pending)</div>
-                                    <div class="d-flex align-items-center justify-content-center text-center gap-4 flex-wrap">
-                                        <div>
-                                            <div class="text-muted small">This Week</div>
-                                            <div class="fs-5 fw-bold text-info">₱<?php echo number_format($thisWeekE, 2); ?></div>
-                                        </div>
-                                        <div>
-                                            <div class="text-muted small">Last Week</div>
-                                            <div class="fs-5 fw-bold text-secondary">₱<?php echo number_format($lastWeekE, 2); ?></div>
-                                        </div>
-                                        <div>
-                                            <div class="text-muted small">Trend</div>
-                                            <div class="fs-6 fw-bold text-<?php echo $diffE >= 0 ? 'success' : 'danger'; ?>">
-                                                <?php echo $arrowE; ?> ₱<?php echo number_format(abs($diffE), 2); ?>
-                                                <?php if ($pctE !== null): ?>
-                                                    <span>(<?php echo ($diffE >= 0 ? '+' : ''); ?><?php echo $pctE; ?>%)</span>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
 
                             </div>
                         </div>
