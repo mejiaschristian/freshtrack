@@ -25,7 +25,19 @@ function getItemsByCategory($pdo, $categoryID)
 function getLowStockItems($pdo)
 {
     try {
-        $stmt = $pdo->query("SELECT i.*, c.categoryName FROM tblitems i JOIN tblcategories c ON i.categoryID = c.categoryID WHERE i.itemQuantity < 10 OR i.itemQuantity <= i.reorderLevel ORDER BY i.itemQuantity ASC");
+        $stmt = $pdo->query("
+            SELECT i.*, c.categoryName, COALESCE(b.totalQty, 0) AS itemQuantity
+            FROM tblitems i 
+            JOIN tblcategories c ON i.categoryID = c.categoryID 
+            LEFT JOIN (
+                SELECT itemID, SUM(quantity) AS totalQty 
+                FROM tblItemBatches 
+                WHERE batchStatus = 'active' OR batchStatus = ''
+                GROUP BY itemID
+            ) b ON i.itemID = b.itemID
+            WHERE COALESCE(b.totalQty, 0) < 10 OR COALESCE(b.totalQty, 0) <= i.reorderLevel 
+            ORDER BY itemQuantity ASC
+        ");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         return [];
@@ -97,7 +109,16 @@ function getDashboardStats($pdo)
         $stats['totalOrders'] = $pdo->query("SELECT COUNT(*) FROM tblorders")->fetchColumn();
         $stats['pendingOrders'] = $pdo->query("SELECT COUNT(*) FROM tblorders WHERE status = 'pending'")->fetchColumn();
         $stats['totalItems'] = $pdo->query("SELECT COUNT(*) FROM tblitems")->fetchColumn();
-        $stats['lowStockCount'] = $pdo->query("SELECT COUNT(*) FROM tblitems WHERE itemQuantity <= reorderLevel")->fetchColumn();
+        $stats['lowStockCount'] = $pdo->query("
+            SELECT COUNT(*) FROM tblitems i
+            LEFT JOIN (
+                SELECT itemID, SUM(quantity) AS totalQty 
+                FROM tblItemBatches 
+                WHERE batchStatus = 'active' OR batchStatus = ''
+                GROUP BY itemID
+            ) b ON i.itemID = b.itemID
+            WHERE COALESCE(b.totalQty, 0) <= i.reorderLevel OR COALESCE(b.totalQty, 0) < 10
+        ")->fetchColumn();
         $stats['totalUsers'] = $pdo->query("SELECT COUNT(*) FROM tblusers")->fetchColumn();
         $stats['inventoryValue'] = getTotalInventoryValue($pdo);
 
@@ -190,7 +211,7 @@ function createBillForOrder(PDO $pdo, int $orderID, int $dueDays = 15): array
     }
 
     $billNumber = generateBillNumber($pdo);
-    $billDate = date('Y-m-d');
+    $billDate = date('Y-m-d H:i:s');
     $dueDate = date('Y-m-d', strtotime("+{$dueDays} days"));
 
     $insertBill = $pdo->prepare("INSERT INTO tblBills (userID, billNumber, billDate, dueDate, totalAmount, status, penaltyAmount) VALUES (:userID, :billNumber, :billDate, :dueDate, :totalAmount, 'unpaid', 0)");

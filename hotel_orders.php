@@ -14,33 +14,10 @@ if ($_SESSION['role'] !== "hotel") {
     exit();
 }
 
-// Helper function to sync cached values from batches to tblItems
-function syncItemFromBatchesLocal($pdo, $itemID)
-{
-    $stmt = $pdo->prepare("
-        SELECT COALESCE(SUM(quantity), 0) AS totalQty,
-               MIN(CASE WHEN quantity > 0 THEN expiryDate END) AS fifoExpiry
-        FROM tblItemBatches
-        WHERE itemID = :id
-    ");
-    $stmt->execute(['id' => $itemID]);
-    $sync = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    $updateItemStmt = $pdo->prepare("
-        UPDATE tblItems 
-        SET itemQuantity = :qty, 
-            itemExpiryDate = :exp 
-        WHERE itemID = :itemID
-    ");
-    $updateItemStmt->execute([
-        'qty'    => $sync['totalQty'],
-        'exp'    => $sync['fifoExpiry'] ?? date('Y-m-d'),
-        'itemID' => $itemID
-    ]);
-}
 $userID = $_SESSION['user_id'];
 $message = "";
 $messageType = "";
+
 // AUTOMATIC TRIGGER RUNTIME ENGINE CHECKER
 // Every time a page loads, this parses background subscriptions to ensure everything is up to date
 processAutomaticRecurringBatches($pdo);
@@ -122,8 +99,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cance
                         }
                     }
 
-                    // 3. Keep the frontend web cache table perfectly synchronized
-                    syncItemFromBatchesLocal($pdo, $itemID);
                 }
 
                 // Get bill IDs before deleting

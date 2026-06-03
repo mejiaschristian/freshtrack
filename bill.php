@@ -219,6 +219,20 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                 <td>₱<?php echo number_format($item['price'] * $item['quantity'], 2); ?></td>
                                             </tr>
                                         <?php endforeach; ?>
+                                        <tr>
+                                            <td colspan="3" class="text-end pe-4">Subtotal:</td>
+                                            <td><strong>₱<?php echo number_format($bill['totalAmount'], 2); ?></strong></td>
+                                        </tr>
+                                        <?php if ($bill['penaltyAmount'] > 0): ?>
+                                            <tr class="text-danger">
+                                                <td colspan="3" class="text-end pe-4">Penalty (5%):</td>
+                                                <td><strong>₱<?php echo number_format($bill['penaltyAmount'], 2); ?></strong></td>
+                                            </tr>
+                                        <?php endif; ?>
+                                        <tr>
+                                            <td colspan="3" class="text-end pe-4">Total Due:</td>
+                                            <td><strong>₱<?php echo number_format($bill['totalAmount'] + $bill['penaltyAmount'], 2); ?></strong></td>
+                                        </tr>
                                     </tbody>
                                     <tfoot>
                                         <tr>
@@ -233,33 +247,14 @@ $allBills = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <hr>
 
                             <!-- Totals -->
-                            <div class="d-flex justify-content-end">
-                                <table class="table w-auto text-end">
-                                    <tr>
-                                        <td class="pe-4">Subtotal:</td>
-                                        <td><strong>₱<?php echo number_format($bill['totalAmount'], 2); ?></strong></td>
-                                    </tr>
-                                    <?php if ($bill['penaltyAmount'] > 0): ?>
-                                        <tr class="text-danger">
-                                            <td class="pe-4">Penalty (5%):</td>
-                                            <td><strong>₱<?php echo number_format($bill['penaltyAmount'], 2); ?></strong></td>
-                                        </tr>
-                                    <?php endif; ?>
-                                    <tr class="fs-5">
-                                        <td class="pe-4">Total Due:</td>
-                                        <td><strong>₱<?php echo number_format($bill['totalAmount'] + $bill['penaltyAmount'], 2); ?></strong></td>
-                                    </tr>
-                                </table>
-                            </div>
-
-                            <div class="d-flex justify-content-center align-items-center gap-4">
+                            <div class="d-flex justify-content-center align-items-center gap-2">
                                 <?php if ($bill['status'] !== 'paid'): ?>
-                                    <div class="alert alert-info mt-3">
+                                    <div class="alert alert-info">
                                         💡 You may pay this bill in full or request partial payment. Scan the QR Code for wallet payment or contact FreshTrack to process bank payment.
                                     </div>
                                     <div class="text-center mt-4">
-                                        <img src="qr_payment.JPG" alt="QR Code for Payment" class="img-fluid" style="max-width: 180px;">
-                                        <p class="mt-2 text-muted small">Scan to Pay</p>
+                                        <img src="qr_payment.JPG" alt="QR Code for Payment" class="img-fluid" style="max-width: 150px;">
+                                        <p class="text-muted small">Scan to Pay</p>
                                     <?php endif; ?>
                                     </div>
                             </div>

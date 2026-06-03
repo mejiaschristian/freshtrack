@@ -2,6 +2,7 @@
 session_start();
 include 'db.php';
 require_once 'auth.php';
+require_once 'cron_process_recurring.php';
 
 if (!isLoggedIn()) {
     header('Location: index.php');
@@ -12,13 +13,24 @@ if ($_SESSION['role'] !== "hotel") {
     header('Location: dashboard.php');
     exit();
 }
+// AUTOMATIC TRIGGER RUNTIME ENGINE CHECKER
+// Every time a page loads, this parses background subscriptions to ensure everything is up to date
+processAutomaticRecurringBatches($pdo);
 
 $search   = trim($_GET['search'] ?? '');
 $category = $_GET['category'] ?? '';
 
-$sql    = "SELECT tblItems.*, tblcategories.categoryName FROM tblItems
-           JOIN tblcategories ON tblItems.categoryID = tblcategories.categoryID
-           WHERE 1=1";
+$sql = "SELECT tblItems.*, tblcategories.categoryName,
+               COALESCE(b.totalQty, 0) AS itemQuantity
+        FROM tblItems
+        JOIN tblcategories ON tblItems.categoryID = tblcategories.categoryID
+        LEFT JOIN (
+            SELECT itemID, SUM(quantity) AS totalQty
+            FROM tblItemBatches
+            WHERE quantity > 0 AND (batchStatus = 'active' AND batchStatus != 'archived')
+            GROUP BY itemID
+        ) b ON tblItems.itemID = b.itemID
+        WHERE 1=1";
 $params = [];
 
 if (!empty($search)) {
@@ -49,7 +61,7 @@ if (!empty($items)) {
         SELECT   itemID, expiryDate, quantity
         FROM     tblItemBatches
         WHERE    itemID IN ($ids)
-          AND    quantity > 0
+          AND    quantity > 0 AND (batchStatus = 'active' AND batchStatus != 'archived')
         ORDER BY itemID, expiryDate ASC
     ")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -70,7 +82,7 @@ if (!empty($items)) {
     // Fallback to tblItems.itemExpiryDate for items with no batch row yet
     foreach ($items as $row) {
         if (!isset($fifoExpiryMap[$row['itemID']])) {
-            $fifoExpiryMap[$row['itemID']] = $row['itemExpiryDate'];
+            $fifoExpiryMap[$row['itemID']] = null;
         }
         // Ensure every item has at least an empty array array payload for batches
         if (!isset($itemBatchesMap[$row['itemID']])) {

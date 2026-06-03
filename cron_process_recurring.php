@@ -8,7 +8,7 @@ function processAutomaticRecurringBatches($pdo)
         if (defined('AUTOMATION_RUNNING')) return;
         define('AUTOMATION_RUNNING', true);
 
-        $todayStr = date('Y-m-d');
+        $todayStr = date('Y-m-d H:i:s');
 
         // 1. Fetch BOTH active due templates AND templates auto-paused by the system due to zero stock
         $stmt = $pdo->prepare("
@@ -60,17 +60,6 @@ function processAutomaticRecurringBatches($pdo)
 
         $deductBatchStmt = $pdo->prepare("
             UPDATE tblItemBatches SET quantity = quantity - :deduct WHERE batchID = :batchID
-        ");
-
-        $syncMasterQtyStmt = $pdo->prepare("
-            SELECT COALESCE(SUM(quantity), 0) AS totalQty, 
-                   MIN(CASE WHEN quantity > 0 THEN expiryDate END) AS fifoExpiry 
-            FROM tblItemBatches 
-            WHERE itemID = :itemID
-        ");
-
-        $updateMasterItemStmt = $pdo->prepare("
-            UPDATE tblItems SET itemQuantity = :qty, itemExpiryDate = :exp WHERE itemID = :itemID
         ");
 
         $updateTemplateStmt = $pdo->prepare("
@@ -188,16 +177,6 @@ function processAutomaticRecurringBatches($pdo)
 
                         $remainingToDeduct -= $deductAmount;
                     }
-
-                    // Sync items inventory master layout values
-                    $syncMasterQtyStmt->execute(['itemID' => $item['itemID']]);
-                    $sync = $syncMasterQtyStmt->fetch(PDO::FETCH_ASSOC);
-
-                    $updateMasterItemStmt->execute([
-                        'qty'    => $sync['totalQty'],
-                        'exp'    => $sync['fifoExpiry'] ?? date('Y-m-d'),
-                        'itemID' => $item['itemID']
-                    ]);
                 }
 
                 // Calculate next cycle timeline
@@ -207,7 +186,7 @@ function processAutomaticRecurringBatches($pdo)
                 } else {
                     $currentSchedule->modify('+1 month');
                 }
-                if ($currentSchedule->format('N') == 7) {
+                if ($currentSchedule->format('N') == 7) {   
                     $currentSchedule->modify('+1 day'); // Skip Sundays
                 }
 

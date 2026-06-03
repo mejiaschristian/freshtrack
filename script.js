@@ -28,39 +28,6 @@ function setDeleteItemID(itemID, itemName) {
     document.getElementById("deleteItemNameDisplay").textContent = itemName;
 }
 
-function openCartModal(item) {
-    // Populate modal fields
-    document.getElementById("modal_itemID").value = item.itemID;
-    document.getElementById("modal_itemName").textContent = item.itemName;
-    document.getElementById("modal_itemDescription").textContent =
-        item.itemDescription;
-    document.getElementById("modal_itemPrice").textContent =
-        "₱" + parseFloat(item.itemPrice).toFixed(2) + " / " + item.itemUnit;
-    document.getElementById("modal_itemQuantity").textContent =
-        item.itemQuantity + " " + item.itemUnit;
-    document.getElementById("modal_itemImage").src =
-        item.itemImage || "placeholder.png";
-
-    // Reset quantity to 1
-    const qtyInput = document.getElementById("modal_quantity");
-    qtyInput.value = 1;
-    qtyInput.max = item.itemQuantity; // can't exceed stock
-
-    // Set subtotal
-    document.getElementById("modal_subtotal").textContent =
-        "₱" + parseFloat(item.itemPrice).toFixed(2);
-
-    // Update subtotal when quantity changes
-    qtyInput.oninput = function () {
-        const total = this.value * parseFloat(item.itemPrice);
-        document.getElementById("modal_subtotal").textContent =
-            "₱" + total.toFixed(2);
-    };
-
-    // Show modal
-    new bootstrap.Modal(document.getElementById("addToCartModal")).show();
-}
-
 function validateBatchForm() {
     const qty = document.getElementById("batchQuantityInput").value;
     const expiry = document.getElementById("batchExpiryDateInput").value;

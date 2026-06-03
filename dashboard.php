@@ -2,6 +2,7 @@
 session_start();
 require_once 'auth.php';
 require_once 'functions.php';
+require_once 'cron_process_recurring.php';
 
 // Check if user is logged in and is admin or staff
 if (!isLoggedIn()) {
@@ -13,6 +14,10 @@ if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'staff') {
     header('Location: dashboard.php');
     exit();
 }
+
+// AUTOMATIC TRIGGER RUNTIME ENGINE CHECKER
+// Every time a page loads, this parses background subscriptions to ensure everything is up to date
+processAutomaticRecurringBatches($pdo);
 
 $stats = getDashboardStats($pdo);
 $lowStockItems = getLowStockItems($pdo);

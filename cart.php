@@ -149,26 +149,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
 
                     $remaining -= $deduct;
                 }
-
-                // Sync global inventory quantities and soonest FIFO expiry date
-                $syncStmt = $pdo->prepare("
-                    SELECT COALESCE(SUM(quantity), 0) AS totalQty, 
-                           MIN(CASE WHEN quantity > 0 THEN expiryDate END) AS fifoExpiry 
-                    FROM tblItemBatches 
-                    WHERE itemID = :itemID
-                ");
-                $syncStmt->execute(['itemID' => $item['itemID']]);
-                $sync = $syncStmt->fetch(PDO::FETCH_ASSOC);
-
-                $pdo->prepare("
-                    UPDATE tblItems 
-                    SET itemQuantity = :qty, itemExpiryDate = :exp
-                    WHERE itemID = :itemID
-                ")->execute([
-                    'qty'    => $sync['totalQty'],
-                    'exp'    => $sync['fifoExpiry'] ?? date('Y-m-d'),
-                    'itemID' => $item['itemID']
-                ]);
             }
 
             $bill = createBillForOrder($pdo, $orderID);
@@ -295,26 +275,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'setup
                     'itemID'      => $item['itemID'],
                     'quantity'    => $item['quantity'],
                 ]);
-
-            // Synchronize system global master stock balance counts
-            $syncStmt = $pdo->prepare("
-                SELECT COALESCE(SUM(quantity), 0) AS totalQty, 
-                    MIN(CASE WHEN quantity > 0 THEN expiryDate END) AS fifoExpiry 
-                FROM tblItemBatches 
-                WHERE itemID = :itemID
-            ");
-            $syncStmt->execute(['itemID' => $item['itemID']]);
-            $sync = $syncStmt->fetch(PDO::FETCH_ASSOC);
-
-            $pdo->prepare("
-                UPDATE tblItems 
-                SET itemQuantity = :qty, itemExpiryDate = :exp 
-                WHERE itemID = :itemID
-            ")->execute([
-                'qty'    => $sync['totalQty'],
-                'exp'    => $sync['fifoExpiry'] ?? date('Y-m-d'),
-                'itemID' => $item['itemID']
-            ]);
         }
 
         // 4. Update core schedule tracker milestone

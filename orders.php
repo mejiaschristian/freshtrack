@@ -28,6 +28,10 @@ if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'staff') {
     exit();
 }
 
+// AUTOMATIC TRIGGER RUNTIME ENGINE CHECKER
+// Every time a page loads, this parses background subscriptions to ensure everything is up to date
+processAutomaticRecurringBatches($pdo);
+
 // AJAX endpoint for fetching order details from admin orders page
 if (isset($_GET['action']) && $_GET['action'] === 'get_order_details') {
     header('Content-Type: application/json');

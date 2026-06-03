@@ -31,34 +31,6 @@ function generateBatchCode($pdo, $itemID)
 }
 
 /* ---------------------------------------------------------------
-   Recalculate tblItems.itemQuantity from live batch stock
-   and update itemExpiryDate to the FIFO (soonest) expiry.
---------------------------------------------------------------- */
-function syncItemFromBatches($pdo, $itemID)
-{
-    $stmt = $pdo->prepare("
-        SELECT COALESCE(SUM(quantity), 0)  AS totalQty,
-               MIN(CASE WHEN quantity > 0 THEN expiryDate END) AS fifoExpiry
-        FROM tblItemBatches
-        WHERE itemID = :id
-          AND (batchStatus = 'active' OR batchStatus = '')
-    ");
-    $stmt->execute(['id' => $itemID]);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    $pdo->prepare("
-        UPDATE tblItems
-        SET itemQuantity  = :qty,
-            itemExpiryDate = :exp
-        WHERE itemID = :id
-    ")->execute([
-        'qty' => $row['totalQty'],
-        'exp' => $row['fifoExpiry'] ?? date('Y-m-d'),
-        'id'  => $itemID,
-    ]);
-}
-
-/* ---------------------------------------------------------------
    POST handler
 --------------------------------------------------------------- */
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -99,19 +71,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 // Insert the item (quantity and expiry are synced from batches)
                 $pdo->prepare("
-                    INSERT INTO tblItems
-                        (itemName, itemDescription, itemImage, categoryID, itemPrice, itemQuantity, itemUnit, itemExpiryDate)
-                    VALUES
-                        (:itemName, :itemDescription, :itemImage, :categoryID, :itemPrice, :qty, :itemUnit, :itemExpiryDate)
-                ")->execute([
+                        INSERT INTO tblItems
+                            (itemName, itemDescription, itemImage, categoryID, itemPrice, itemUnit)
+                        VALUES
+                            (:itemName, :itemDescription, :itemImage, :categoryID, :itemPrice, :itemUnit)
+                    ")->execute([
                     'itemName'        => $name,
                     'itemDescription' => $description,
                     'itemImage'       => $image,
                     'categoryID'      => $category,
                     'itemPrice'       => $price,
-                    'qty'             => $quantity,
-                    'itemUnit'        => $unit,
-                    'itemExpiryDate'  => $expiryDate,
+                    'itemUnit'        => $unit
                 ]);
                 $itemID = $pdo->lastInsertId();
 
@@ -168,7 +138,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         'qty2'        => $quantity,
                     ]);
 
-                syncItemFromBatches($pdo, $itemID);
                 $pdo->commit();
 
                 $message     = "Batch $batchCode added successfully!";
@@ -203,27 +172,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         }
 
-        try {
-            $pdo->prepare("
-                UPDATE tblItems
-                SET itemName=:name, itemDescription=:description, itemImage=:image,
-                    categoryID=:category, itemPrice=:price, itemUnit=:unit
-                WHERE itemID=:itemID
-            ")->execute([
-                'name'        => $name,
-                'description' => $description,
-                'image'       => $image,
-                'category'    => $category,
-                'price'       => $price,
-                'unit'        => $unit,
-                'itemID'      => $_POST['itemID'],
-            ]);
-            $message     = "Item '$name' updated!";
-            $messageType = "success";
-        } catch (PDOException $e) {
-            $message     = "Error: " . $e->getMessage();
-            $messageType = "danger";
-        }
 
         /* ---- DELETE BATCH ---- */
     } elseif ($action === 'delete_batch') {
@@ -233,7 +181,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $pdo->beginTransaction();
             $pdo->prepare("UPDATE tblItemBatches SET batchStatus = 'archived' WHERE batchID = :id")
                 ->execute(['id' => $batchID]);
-            syncItemFromBatches($pdo, $itemID);
             $pdo->commit();
             $message     = "Batch archived.";
             $messageType = "success";
@@ -266,18 +213,6 @@ $pdo->prepare("UPDATE tblItemBatches
                 WHERE expiryDate < CURDATE()
                   AND (batchStatus = 'active' OR batchStatus = '')")
     ->execute();
-$pdo->prepare("UPDATE tblItems i
-                LEFT JOIN (
-                    SELECT itemID,
-                           COALESCE(SUM(quantity), 0) AS totalQty,
-                           MIN(CASE WHEN quantity > 0 THEN expiryDate END) AS fifoExpiry
-                    FROM tblItemBatches
-                    WHERE batchStatus IN ('active', '')
-                    GROUP BY itemID
-                ) b ON i.itemID = b.itemID
-                SET i.itemQuantity = COALESCE(b.totalQty, 0),
-                    i.itemExpiryDate = COALESCE(b.fifoExpiry, CURDATE())")
-    ->execute();
 
 /* ---------------------------------------------------------------
    Query params
@@ -287,9 +222,20 @@ $category  = $_GET['category'] ?? '';
 $sortBy    = $_GET['sortBy']    ?? 'itemID';
 $sortOrder = $_GET['sortOrder'] ?? 'ASC';
 
-$sql    = "SELECT tblItems.*, tblCategories.categoryName FROM tblItems
-           JOIN tblCategories ON tblItems.categoryID = tblCategories.categoryID
-           WHERE 1=1";
+$sql = "SELECT tblItems.*, tblCategories.categoryName, 
+               COALESCE(b.totalQty, 0) AS itemQuantity,
+               b.fifoExpiry AS itemExpiryDate
+        FROM tblItems
+        JOIN tblCategories ON tblItems.categoryID = tblCategories.categoryID
+        LEFT JOIN (
+            SELECT itemID,
+                   SUM(quantity) AS totalQty,
+                   MIN(CASE WHEN quantity > 0 THEN expiryDate END) AS fifoExpiry
+            FROM tblItemBatches
+            WHERE batchStatus = 'active' OR batchStatus = ''
+            GROUP BY itemID
+        ) b ON tblItems.itemID = b.itemID
+        WHERE 1=1";
 $params = [];
 
 if (!empty($search)) {
@@ -305,7 +251,7 @@ if (!empty($category)) {
 $allowedSort = ['itemID', 'itemName', 'itemPrice', 'itemQuantity', 'itemDateAdded', 'itemExpiryDate'];
 if (!in_array($sortBy, $allowedSort)) $sortBy = 'itemID';
 if (!in_array(strtoupper($sortOrder), ['ASC', 'DESC'])) $sortOrder = 'ASC';
-$sql .= " ORDER BY tblItems." . $sortBy . " " . $sortOrder;
+$sql .= " ORDER BY " . $sortBy . " " . $sortOrder;
 
 $stmt  = $pdo->prepare($sql);
 $stmt->execute($params);
