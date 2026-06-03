@@ -2,6 +2,8 @@
 session_start();
 require_once 'auth.php';
 
+$registration_success = false; // Add a flag to track success
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email            = trim($_POST['email'] ?? '');
     $fullName         = trim($_POST['fullName'] ?? '');
@@ -15,8 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = register($email, $fullName, $password); // only called once
 
         if ($result['success']) {
-            header('Location: index.php');
-            exit();
+            // Set the flag to true instead of immediately redirecting
+            $registration_success = true;
         } else {
             $_SESSION['register_error'] = $result['message'];
         }
@@ -56,7 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <p class="login-subtitle">Sign up to get started with FreshTrack</p>
                         </div>
 
-                        <!-- Error Message -->
                         <?php if (isset($_SESSION['register_error'])): ?>
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                 <i class="bi bi-exclamation-circle-fill me-2"></i>
@@ -66,58 +67,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php unset($_SESSION['register_error']);
                         endif; ?>
 
-                        <!-- Login Form -->
-                        <form method="POST" action="">
-                            <div class="form-floating mb-3">
-                                <input
-                                    type="text"
-                                    class="form-control login-input"
-                                    id="email"
-                                    name="email"
-                                    placeholder="Enter your email"
-                                    required />
-                                <label for="email">Email</label>
+                        <?php if ($registration_success): ?>
+                            <div class="alert alert-success text-center" role="alert">
+                                <i class="bi bi-check-circle-fill me-2"></i>
+                                Account created successfully! Redirecting to login...
                             </div>
+                            <script>
+                                // Redirect to index.php after 1.5 seconds (1500 milliseconds)
+                                setTimeout(function() {
+                                    window.location.href = 'index.php';
+                                }, 1500);
+                            </script>
+                        <?php else: ?>
 
-                            <div class="form-floating mb-3">
-                                <input
-                                    type="text"
-                                    class="form-control login-input"
-                                    id="fullName"
-                                    name="fullName"
-                                    placeholder="Enter your hotel name"
-                                    required />
-                                <label for="fullName">Hotel Name</label>
-                            </div>
+                            <!-- Login Form -->
+                            <form method="POST" action="">
+                                <div class="form-floating mb-3">
+                                    <input
+                                        type="text"
+                                        class="form-control login-input"
+                                        id="email"
+                                        name="email"
+                                        placeholder="Enter your email"
+                                        required />
+                                    <label for="email">Email</label>
+                                </div>
 
-                            <div class="form-floating mb-4">
-                                <input
-                                    type="password"
-                                    class="form-control login-input"
-                                    id="password"
-                                    name="password"
-                                    placeholder="Enter your password"
-                                    required />
-                                <label for="password">Password</label>
-                            </div>
+                                <div class="form-floating mb-3">
+                                    <input
+                                        type="text"
+                                        class="form-control login-input"
+                                        id="fullName"
+                                        name="fullName"
+                                        placeholder="Enter your hotel name"
+                                        required />
+                                    <label for="fullName">Hotel Name</label>
+                                </div>
 
-                            <div class="form-floating mb-4">
-                                <input
-                                    type="password"
-                                    class="form-control login-input"
-                                    id="confirm_password"
-                                    name="confirm_password"
-                                    placeholder="Confirm your password"
-                                    required />
-                                <label for="confirm_password">Confirm Password</label>
-                            </div>
+                                <div class="form-floating mb-4">
+                                    <input
+                                        type="password"
+                                        class="form-control login-input"
+                                        id="password"
+                                        name="password"
+                                        placeholder="Enter your password"
+                                        required />
+                                    <label for="password">Password</label>
+                                </div>
 
-                            <button
-                                type="submit"
-                                class="btn btn-login w-100 py-2 fw-6 mb-3">
-                                Create Account
-                            </button>
-                        </form>
+                                <div class="form-floating mb-4">
+                                    <input
+                                        type="password"
+                                        class="form-control login-input"
+                                        id="confirm_password"
+                                        name="confirm_password"
+                                        placeholder="Confirm your password"
+                                        required />
+                                    <label for="confirm_password">Confirm Password</label>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-login w-100 py-2 fw-6 mb-3">
+                                    Create Account
+                                </button>
+                            </form>
+                        <?php endif; ?>
 
                         <!-- Divider -->
                         <div class="divider-text mb-3">
