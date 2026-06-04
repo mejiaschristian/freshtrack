@@ -350,10 +350,17 @@ function viewOrderDetails(orderID) {
                         completeOrderBtn.classList.remove("d-none");
                         viewBillBtn.classList.add("d-none");
                     }
-                } else if (!isAdminPage && cancelOrderBtn) {
+                } else {
                     // User page button handling
                     if (cancelOrderBtn) {
-                        cancelOrderBtn.value = order.orderID;
+                        if (
+                            order.status === "billed" ||
+                            order.status === "paid"
+                        ) {
+                            cancelOrderBtn.classList.add("d-none");
+                        } else {
+                            cancelOrderBtn.value = order.orderID;
+                        }
                     }
                 }
 

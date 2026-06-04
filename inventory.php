@@ -172,6 +172,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         }
 
+        if (!empty($name) && !empty($category) && !empty($price)) {
+            try {
+                $pdo->beginTransaction();
+
+                // Note: Stock quantity and expiry are managed through batches, so they are not updated here
+                $pdo->prepare("
+                        UPDATE tblItems
+                        SET itemName = :itemName, itemDescription = :itemDescription, itemImage = :itemImage, categoryID = :categoryID, itemPrice = :itemPrice, itemUnit = :itemUnit
+                        WHERE itemID = :itemID
+                    ")->execute([
+                    'itemName'        => $name,
+                    'itemDescription' => $description,
+                    'itemImage'       => $image,
+                    'categoryID'      => $category,
+                    'itemPrice'       => $price,
+                    'itemUnit'        => $unit,
+                    'itemID'          => $_POST['itemID']
+                ]);
+
+                $pdo->commit();
+                $message     = "Item '$name' successfully edited!";
+                $messageType = "success";
+            } catch (PDOException $e) {
+                $pdo->rollBack();
+                $message     = "Error: " . $e->getMessage();
+                $messageType = "danger";
+            }
+        }
 
         /* ---- DELETE BATCH ---- */
     } elseif ($action === 'delete_batch') {

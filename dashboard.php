@@ -55,7 +55,7 @@ $revenueComp       = getRevenueComparison($pdo);
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav ms-auto">
+                    <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
                         <li class="nav-item"><a class="nav-link active" href="dashboard.php">Dashboard</a></li>
                         <li class="nav-item"><a class="nav-link" href="inventory.php">Inventory</a></li>
                         <li class="nav-item"><a class="nav-link" href="orders.php">Orders</a></li>
@@ -63,18 +63,18 @@ $revenueComp       = getRevenueComparison($pdo);
                         <?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin']): ?>
                             <li class="nav-item"><a class="nav-link" href="users.php">Users</a></li>
                         <?php endif; ?>
-                        <li class="border-start border-success-subtle ps-3 nav-item dropdown d-flex align-items-center mx-3">
-                            <img src="user-icon.svg" alt="user-icon" width="35">
+                        <li class="nav-item dropdown">
                             <a
-                                class="nav-link dropdown-toggle"
+                                class="nav-link dropdown-toggle d-flex align-items-center gap-2 border-start border-1 ms-3 px-3"
                                 href="#"
                                 id="dropdownId"
                                 data-bs-toggle="dropdown"
                                 aria-haspopup="true"
                                 aria-expanded="false">
-                                <?php echo $_SESSION['username'] ?? 'Guest'; ?>
+                                <img src="user-icon.svg" alt="user-icon" width="35">
+                                <span><?php echo $_SESSION['username'] ?? 'Guest'; ?></span>
                             </a>
-                            <div class="dropdown-menu" aria-labelledby="dropdownId">
+                            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownId">
                                 <a class="dropdown-item btn btn-danger" href="index.php">Log Out</a>
                             </div>
                         </li>
